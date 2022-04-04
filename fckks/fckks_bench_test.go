@@ -11,8 +11,8 @@ func BenchmarkFCKKS(b *testing.B) {
 		panic(err)
 	}
 
-	benchMulNew(testctx, b)
 	benchMulOld(testctx, b)
+	benchMulNew(testctx, b)
 }
 
 func benchMulNew(testctx *testContext, b *testing.B) {

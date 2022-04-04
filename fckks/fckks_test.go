@@ -38,7 +38,7 @@ var (
 
 	PN16QP1760 = ParametersLiteral{
 		LogN: 16,
-		Q: []uint64{ // 45 x 36
+		Q: []uint64{ // 45 x 34
 			0x1fffffc20001, 0x1fffff980001,
 			0x1fffff7e0001, 0x1fffff360001,
 			0x1fffff060001, 0x1ffffede0001,
@@ -56,7 +56,6 @@ var (
 			0x1ffffb9a0001, 0x1ffffb900001,
 			0x1ffffb7e0001, 0x1ffffb5e0001,
 			0x1ffffb240001, 0x1ffffb120001,
-			0x1ffffac40001, 0x1ffffa980001,
 		},
 		P:            0x7fffffffba0001,                               // 55 bit
 		R:            []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
@@ -175,6 +174,8 @@ func testEval(testctx *testContext, t *testing.T) {
 
 		ctOut := eval.MulRelinNew(ct0, ct1, testctx.rlk)
 
+		require.Equal(t, ctOut.Degree(), 1)
+
 		msgOut := dec.DecryptToMsgNew(ctOut)
 
 		for i := 0; i < slots; i++ {
@@ -189,7 +190,8 @@ func testEval(testctx *testContext, t *testing.T) {
 		msg2, ct1 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
 
 		ctOut := evalOld.MulRelinNew(ct0, ct1)
-		evalOld.Rescale(ctOut, params.DefaultScale(), ctOut)
+
+		require.Equal(t, ctOut.Degree(), 1)
 
 		msgOut := dec.DecryptToMsgNew(ctOut)
 
