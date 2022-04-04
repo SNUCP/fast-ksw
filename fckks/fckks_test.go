@@ -35,18 +35,48 @@ var (
 		DefaultScale: 1 << 45,
 		LogSlots:     14,
 	}
+
+	PN16QP1760 = ParametersLiteral{
+		LogN: 16,
+		Q: []uint64{ // 45 x 36
+			0x1fffffc20001, 0x1fffff980001,
+			0x1fffff7e0001, 0x1fffff360001,
+			0x1fffff060001, 0x1ffffede0001,
+			0x1ffffeca0001, 0x1ffffeb40001,
+			0x1ffffe760001, 0x1ffffe640001,
+			0x1ffffe520001, 0x1ffffe0c0001,
+			0x1ffffdee0001, 0x1ffffdb60001,
+			0x1ffffd800001, 0x1ffffd760001,
+			0x1ffffd700001, 0x1ffffd160001,
+			0x1ffffcf00001, 0x1ffffcc80001,
+			0x1ffffcb40001, 0x1ffffc980001,
+			0x1ffffc6e0001, 0x1ffffc200001,
+			0x1ffffc140001, 0x1ffffbe20001,
+			0x1ffffbc40001, 0x1ffffbbe0001,
+			0x1ffffb9a0001, 0x1ffffb900001,
+			0x1ffffb7e0001, 0x1ffffb5e0001,
+			0x1ffffb240001, 0x1ffffb120001,
+			0x1ffffac40001, 0x1ffffa980001,
+		},
+		P:            0x7fffffffba0001,                               // 55 bit
+		R:            []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
+		Sigma:        rlwe.DefaultSigma,
+		DefaultScale: 1 << 45,
+		LogSlots:     15,
+	}
 )
 
 type testContext struct {
-	params Parameters
-	ringQ  *ring.Ring
-	kgen   *frlwe.KeyGenerator
-	sk     *rlwe.SecretKey
-	pk     *rlwe.PublicKey
-	rlk    *frlwe.RelinKey
-	enc    *Encryptor
-	dec    *Decryptor
-	eval   *Evaluator
+	params  Parameters
+	ringQ   *ring.Ring
+	kgen    *frlwe.KeyGenerator
+	sk      *rlwe.SecretKey
+	pk      *rlwe.PublicKey
+	rlk     *frlwe.RelinKey
+	enc     *Encryptor
+	dec     *Decryptor
+	eval    *Evaluator
+	evalOld ckks.Evaluator
 }
 
 func genTestParams(params Parameters) (testctx *testContext, err error) {
@@ -64,6 +94,9 @@ func genTestParams(params Parameters) (testctx *testContext, err error) {
 	testctx.enc = NewEncryptor(testctx.params, testctx.pk)
 	testctx.dec = NewDecryptor(testctx.params, testctx.sk)
 	testctx.eval = NewEvaluator(testctx.params)
+
+	rlkOld := testctx.kgen.KeyGenerator.GenRelinearizationKey(testctx.sk, 1)
+	testctx.evalOld = ckks.NewEvaluator(testctx.params.Parameters, rlwe.EvaluationKey{Rlk: rlkOld})
 
 	return
 }
@@ -118,6 +151,7 @@ func testEval(testctx *testContext, t *testing.T) {
 	slots := params.Slots()
 	dec := testctx.dec
 	eval := testctx.eval
+	evalOld := testctx.evalOld
 
 	t.Run("Add", func(t *testing.T) {
 		msg1, ct0 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
@@ -140,6 +174,22 @@ func testEval(testctx *testContext, t *testing.T) {
 		msg2, ct1 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
 
 		ctOut := eval.MulRelinNew(ct0, ct1, testctx.rlk)
+
+		msgOut := dec.DecryptToMsgNew(ctOut)
+
+		for i := 0; i < slots; i++ {
+			delta := msg1.Value[i]*msg2.Value[i] - msgOut.Value[i]
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(real(delta))))
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(imag(delta))))
+		}
+	})
+
+	t.Run("MulAndRelinOld", func(t *testing.T) {
+		msg1, ct0 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
+		msg2, ct1 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
+
+		ctOut := evalOld.MulRelinNew(ct0, ct1)
+		evalOld.Rescale(ctOut, params.DefaultScale(), ctOut)
 
 		msgOut := dec.DecryptToMsgNew(ctOut)
 

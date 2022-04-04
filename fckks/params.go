@@ -40,7 +40,7 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 		})
 
 	if err != nil {
-		panic("cannot NewParametersFromLiteral: rlweParams cannot be generated")
+		panic("cannot NewParametersFromLiteral: ckksParams cannot be generated")
 	}
 
 	frlweParams := frlwe.NewParametersFromLiteral(

@@ -68,5 +68,5 @@ func (eval *Evaluator) MulRelin(ct0, ct1 *ckks.Ciphertext, rlk *frlwe.RelinKey, 
 
 	ctOut.Value = ctOut.Value[:2]
 
-	eval.Rescale(ctOut, eval.params.DefaultScale(), ctOut)
+	//eval.Rescale(ctOut, eval.params.DefaultScale(), ctOut)
 }
