@@ -22,7 +22,7 @@ type Parameters struct {
 }
 
 func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
-	rlweParams, err := rlwe.NewParametersFromLiteral(rlwe.ParametersLiteral{LogN: pl.LogN, Q: pl.Q, P: make([]uint64, pl.P), LogQ: pl.LogQ, LogP: pl.LogP, H: pl.H, Sigma: pl.Sigma})
+	rlweParams, err := rlwe.NewParametersFromLiteral(rlwe.ParametersLiteral{LogN: pl.LogN, Q: pl.Q, P: []uint64{pl.P}, LogQ: pl.LogQ, LogP: pl.LogP, H: pl.H, Sigma: pl.Sigma})
 
 	if err != nil {
 		panic("cannot NewParametersFromLiteral: rlweParams cannot be generated")

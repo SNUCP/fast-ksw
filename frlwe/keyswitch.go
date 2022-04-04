@@ -9,12 +9,13 @@ import (
 type KeySwitcher struct {
 	params      Parameters
 	gadgetVec   []*big.Int
-	polyQPPool  rlwe.PolyQP
 	polyRPools1 []*ring.Poly
 	polyRPools2 []*ring.Poly
 
-	polyQPool *ring.Poly
-	polyPPool *ring.Poly
+	polyQPPool1 rlwe.PolyQP
+	polyQPPool2 rlwe.PolyQP
+
+	bigIntPool []*big.Int
 
 	convQP *ring.BasisExtender
 	convRP *ring.BasisExtender
@@ -25,11 +26,13 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ksw := new(KeySwitcher)
 	ksw.params = params
 	ksw.gadgetVec = make([]*big.Int, params.Alpha()+params.Beta())
-	ksw.polyQPPool = params.RingQP().NewPoly()
 	ksw.polyRPools1 = make([]*ring.Poly, params.Alpha()+params.Beta())
 	ksw.polyRPools2 = make([]*ring.Poly, params.Alpha()+params.Beta())
-	ksw.polyQPool = params.RingQ().NewPoly()
-	ksw.polyPPool = params.RingP().NewPoly()
+
+	ksw.polyQPPool1 = params.RingQP().NewPoly()
+	ksw.polyQPPool2 = params.RingQP().NewPoly()
+
+	ksw.bigIntPool = make([]*big.Int, params.N())
 
 	for i := 0; i < len(ksw.polyRPools1); i++ {
 		ksw.polyRPools1[i] = params.RingR().NewPoly()
@@ -47,33 +50,29 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 		ksw.gadgetVec[i] = big.NewInt(0)
 	}
 
-	bigIntQP := big.NewInt(1)
-	bigIntQP.Mul(params.QBigInt(), params.PBigInt())
+	for i := 0; i < params.N(); i++ {
+		ksw.bigIntPool[i] = big.NewInt(0)
+	}
 
 	//generate gadget vector
+	bigIntQP := big.NewInt(1).Mul(params.RingQ().ModulusBigint, params.RingP().ModulusBigint)
+	alpha := params.Alpha()
+	beta := params.Beta()
 
-	for i := 0; i < params.Beta(); i++ {
+	for i := 0; i < beta; i++ {
 		qi := big.NewInt(int64(params.RingQ().Modulus[i]))
-		qiHat := big.NewInt(0)
-		qiHatInv := big.NewInt(0)
-		gi := big.NewInt(0)
-
-		qiHat.Div(bigIntQP, qi)
-		qiHatInv.ModInverse(qiHat, qi)
-		gi.Mul(qiHat, qiHatInv)
+		gi := big.NewInt(0).Div(bigIntQP, qi)
+		qiHat := big.NewInt(0).ModInverse(gi, qi)
+		gi.Mul(gi, qiHat)
 		ksw.gadgetVec[i].Set(gi)
 	}
 
-	for i := 0; i < params.Alpha(); i++ {
-		pi := big.NewInt(int64(params.RingP().Modulus[i]))
-		piHat := big.NewInt(0)
-		piHatInv := big.NewInt(0)
-		gi := big.NewInt(0)
-
-		piHat.Div(bigIntQP, pi)
-		piHatInv.ModInverse(piHat, pi)
-		gi.Mul(piHat, piHatInv)
-		ksw.gadgetVec[i+params.Beta()].Set(gi)
+	for i := beta; i < beta+alpha; i++ {
+		pi := big.NewInt(int64(params.RingP().Modulus[i-beta]))
+		gi := big.NewInt(0).Div(bigIntQP, pi)
+		piHat := big.NewInt(0).ModInverse(gi, pi)
+		gi.Mul(gi, piHat)
+		ksw.gadgetVec[i].Set(gi)
 	}
 
 	return ksw
@@ -85,79 +84,92 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 	params := ksw.params
 	ringQ := params.RingQ()
 	ringP := params.RingP()
+	ringQP := params.RingQP()
 	ringR := params.RingR()
+
+	alpha := params.Alpha()
+	beta := params.Beta()
+
+	levelP := params.PCount() - 1
+	levelR := len(ringR.Modulus) - 1
+
+	halfR := big.NewInt(0).Div(ringR.ModulusBigint, big.NewInt(2))
 
 	if a.IsNTT {
 		panic("a should not be in NTT")
 	}
 
-	gadgetDim := levelQ + 1
-
 	//move coeffs of a into ringR
 	aCoeffs := a.GetCoefficients()
 
-	for i := 0; i < gadgetDim; i++ {
+	for i := 0; i < levelQ+1; i++ {
 		ringR.SetCoefficientsUint64(aCoeffs[i], ksw.polyRPools1[i])
 		ringR.NTT(ksw.polyRPools1[i], ksw.polyRPools1[i])
 	}
 
 	//set polyRPools2 to zero
-	for i := 0; i < gadgetDim; i++ {
+	for i := 0; i < levelQ+1; i++ {
 		ksw.polyRPools2[i].Zero()
 	}
 
-	//product and sum up coeffs
-	for i := 0; i < params.Alpha(); i++ {
-		ksw.polyRPools2[i+params.Beta()].Zero()
+	for i := 0; i < alpha; i++ {
+		ksw.polyRPools2[i+beta].Zero()
 	}
 
-	for i := 0; i < gadgetDim; i++ {
-		for j := 0; j < gadgetDim; j++ {
+	//product and sum up coeffs
+
+	for i := 0; i < levelQ+1; i++ {
+		for j := 0; j < levelQ+1; j++ {
 			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg.Value[i][j], ksw.polyRPools2[j])
 		}
 
-		for j := 0; j < params.Alpha(); j++ {
-			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg.Value[i][j+params.Beta()], ksw.polyRPools2[j+params.Beta()])
+		for j := 0; j < alpha; j++ {
+			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
 		}
 	}
 
-	for i := 0; i < gadgetDim; i++ {
+	for i := 0; i < levelQ+1; i++ {
 		ringR.InvNTT(ksw.polyRPools2[i], ksw.polyRPools2[i])
 	}
 
-	for i := 0; i < params.Alpha(); i++ {
-		ringR.InvNTT(ksw.polyRPools2[i+params.Beta()], ksw.polyRPools2[i+params.Beta()])
+	for i := 0; i < alpha; i++ {
+		ringR.InvNTT(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
 	}
 
 	//move coeffs to ringQP
-	ksw.polyQPPool.Q.Zero()
-	ksw.polyQPPool.P.Zero()
+	ksw.polyQPPool2.Q.Zero()
+	ksw.polyQPPool2.P.Zero()
 
-	levelR := len(ringR.Modulus) - 1
-	levelP := params.PCount() - 1
+	for i := 0; i < levelQ+1; i++ {
+		ringR.AddScalarBigint(ksw.polyRPools2[i], halfR, ksw.polyRPools2[i])
+		ksw.convRQ.ModUpQtoP(levelR, levelQ, ksw.polyRPools2[i], ksw.polyQPPool1.Q)
+		ksw.convRP.ModUpQtoP(levelR, levelP, ksw.polyRPools2[i], ksw.polyQPPool1.P)
 
-	for i := 0; i < gadgetDim; i++ {
-		ksw.convRQ.ModUpQtoP(levelR, levelQ, ksw.polyRPools2[i], ksw.polyQPool)
-		ksw.convRP.ModUpQtoP(levelR, levelP, ksw.polyRPools2[i], ksw.polyPPool)
-		ringQ.MulScalarBigintLvl(levelQ, ksw.polyQPool, ksw.gadgetVec[i], ksw.polyQPool)
-		ringQ.AddLvl(levelQ, ksw.polyQPool, ksw.polyQPPool.Q, ksw.polyQPPool.Q)
+		ringQ.SubScalarBigintLvl(levelQ, ksw.polyQPPool1.Q, halfR, ksw.polyQPPool1.Q)
+		ringQ.MulScalarBigintLvl(levelQ, ksw.polyQPPool1.Q, ksw.gadgetVec[i], ksw.polyQPPool1.Q)
 
-		ringP.MulScalarBigintLvl(levelP, ksw.polyPPool, ksw.gadgetVec[i], ksw.polyPPool)
-		ringP.AddLvl(levelP, ksw.polyPPool, ksw.polyQPPool.P, ksw.polyQPPool.P)
+		ringP.SubScalarBigintLvl(levelP, ksw.polyQPPool1.P, halfR, ksw.polyQPPool1.P)
+		ringP.MulScalarBigintLvl(levelP, ksw.polyQPPool1.P, ksw.gadgetVec[i], ksw.polyQPPool1.P)
+
+		ringQP.AddLvl(levelQ, levelP, ksw.polyQPPool1, ksw.polyQPPool2, ksw.polyQPPool2)
 	}
 
-	for i := params.Beta(); i < params.Beta()+params.Alpha(); i++ {
-		ksw.convRQ.ModUpQtoP(levelR, levelQ, ksw.polyRPools2[i], ksw.polyQPool)
-		ksw.convRP.ModUpQtoP(levelR, levelP, ksw.polyRPools2[i], ksw.polyPPool)
-		ringQ.MulScalarBigintLvl(levelQ, ksw.polyQPool, ksw.gadgetVec[i], ksw.polyQPool)
-		ringQ.AddLvl(levelQ, ksw.polyQPool, ksw.polyQPPool.Q, ksw.polyQPPool.Q)
+	for i := beta; i < beta+alpha; i++ {
+		ringR.AddScalarBigint(ksw.polyRPools2[i], halfR, ksw.polyRPools2[i])
+		ksw.convRQ.ModUpQtoP(levelR, levelQ, ksw.polyRPools2[i], ksw.polyQPPool1.Q)
+		ksw.convRP.ModUpQtoP(levelR, levelP, ksw.polyRPools2[i], ksw.polyQPPool1.P)
 
-		ringP.MulScalarBigintLvl(levelP, ksw.polyPPool, ksw.gadgetVec[i], ksw.polyPPool)
-		ringP.AddLvl(levelP, ksw.polyPPool, ksw.polyQPPool.P, ksw.polyQPPool.P)
+		ringQ.SubScalarBigintLvl(levelQ, ksw.polyQPPool1.Q, halfR, ksw.polyQPPool1.Q)
+		ringQ.MulScalarBigintLvl(levelQ, ksw.polyQPPool1.Q, ksw.gadgetVec[i], ksw.polyQPPool1.Q)
+
+		ringP.SubScalarBigintLvl(levelP, ksw.polyQPPool1.P, halfR, ksw.polyQPPool1.P)
+		ringP.MulScalarBigintLvl(levelP, ksw.polyQPPool1.P, ksw.gadgetVec[i], ksw.polyQPPool1.P)
+
+		ringQP.AddLvl(levelQ, levelP, ksw.polyQPPool1, ksw.polyQPPool2, ksw.polyQPPool2)
 	}
 
 	//Div by P
-	ksw.convQP.ModDownQPtoQ(levelQ, levelP, ksw.polyQPPool.Q, ksw.polyQPPool.P, c)
+	ksw.convQP.ModDownQPtoQ(levelQ, levelP, ksw.polyQPPool2.Q, ksw.polyQPPool2.P, c)
 
 	return
 }

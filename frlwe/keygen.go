@@ -2,27 +2,77 @@ package frlwe
 
 import (
 	"github.com/tuneinsight/lattigo/v3/rlwe"
+
+	"math/big"
 )
 
 type KeyGenerator struct {
-	keygen rlwe.KeyGenerator
-	params Parameters
+	rlwe.KeyGenerator
+	params     Parameters
+	polyQPPool rlwe.PolyQP
 }
 
 func NewKeyGenerator(params Parameters) (keygen *KeyGenerator) {
 	keygen = new(KeyGenerator)
-	keygen.keygen = rlwe.NewKeyGenerator(params.Parameters)
+	keygen.KeyGenerator = rlwe.NewKeyGenerator(params.Parameters)
 	keygen.params = params
+	keygen.polyQPPool = params.RingQP().NewPoly()
 
 	return
 }
 
 func (keygen *KeyGenerator) GenSecretKey() *rlwe.SecretKey {
-	return keygen.keygen.GenSecretKey()
+	return keygen.GenSecretKey()
 }
 
 func (keygen *KeyGenerator) GenPublicKey(sk *rlwe.SecretKey) *rlwe.PublicKey {
-	return keygen.keygen.GenPublicKey(sk)
+	return keygen.GenPublicKey(sk)
+}
+
+func (keygen *KeyGenerator) GenSwitchingKey(sk *rlwe.SecretKey) (swk *SwitchingKey) {
+	params := keygen.params
+	swk = NewSwitchingKey(params)
+
+	ringQ := params.RingQ()
+	ringP := params.RingP()
+	ringR := params.RingR()
+
+	alpha := params.Alpha()
+	beta := params.Beta()
+
+	for i := 0; i < beta; i++ {
+		gi := big.NewInt(1)
+		qi := big.NewInt(int64(ringQ.Modulus[i]))
+		gi.Div(ringQ.ModulusBigint, qi)
+		qiHat := big.NewInt(1).ModInverse(gi, qi)
+		gi.Mul(qiHat, gi)
+		gi.Mul(gi, ringP.ModulusBigint)
+
+		ringQ.InvMForm(sk.Value.Q, keygen.polyQPPool.Q)
+		ringQ.InvNTT(keygen.polyQPPool.Q, keygen.polyQPPool.Q)
+		ringQ.MulScalarBigint(keygen.polyQPPool.Q, gi, keygen.polyQPPool.Q)
+
+		ringP.InvMForm(sk.Value.P, keygen.polyQPPool.P)
+		ringP.InvNTT(keygen.polyQPPool.P, keygen.polyQPPool.P)
+		ringP.MulScalarBigint(keygen.polyQPPool.P, gi, keygen.polyQPPool.P)
+
+		coeffsQ := keygen.polyQPPool.Q.GetCoefficients()
+		coeffsP := keygen.polyQPPool.P.GetCoefficients()
+
+		for j := 0; j < beta; j++ {
+			ringR.SetCoefficientsUint64(coeffsQ[j], swk.Value[i][j])
+			ringR.NTT(swk.Value[i][j], swk.Value[i][j])
+			ringR.MForm(swk.Value[i][j], swk.Value[i][j])
+		}
+
+		for j := beta; j < alpha+beta; j++ {
+			ringR.SetCoefficientsUint64(coeffsP[j-beta], swk.Value[i][j])
+			ringR.NTT(swk.Value[i][j], swk.Value[i][j])
+			ringR.MForm(swk.Value[i][j], swk.Value[i][j])
+		}
+	}
+
+	return
 }
 
 func (keygen *KeyGenerator) GenRelinKey(sk *rlwe.SecretKey) (rlk *RelinKey) {
@@ -30,7 +80,7 @@ func (keygen *KeyGenerator) GenRelinKey(sk *rlwe.SecretKey) (rlk *RelinKey) {
 	params := keygen.params
 	ringR := params.RingR()
 	rlk = NewRelinKey(params)
-	rlweRlk := keygen.keygen.GenRelinearizationKey(sk, 1)
+	rlweRlk := keygen.GenRelinearizationKey(sk, 1)
 
 	gadgetDim := params.Beta()
 
