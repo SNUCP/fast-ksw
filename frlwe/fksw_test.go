@@ -16,19 +16,18 @@ import (
 var (
 	PN15QP880 = ParametersLiteral{
 		LogN: 15,
-		Q: []uint64{ // 40 x 20
-			0xffffe80001, 0xffffc40001,
-			0xffffb20001, 0xffff940001,
-			0xffff8a0001, 0xffff820001,
-			0xffff780001, 0xffff750001,
-			0xffff690001, 0xffff5b0001,
-			0xffff580001, 0xffff550001,
-			0xffff4b0001, 0xffff480001,
-			0xffff420001, 0xffff340001,
-			0xffff2d0001, 0xfffee90001,
-			0xfffed10001, 0xfffeb60001,
+		Q: []uint64{ // 45 x 18
+			0x1fffffcf0001, 0x1fffffc20001,
+			0x1fffffbf0001, 0x1fffffb10001,
+			0x1fffff980001, 0x1fffff950001,
+			0x1fffff7e0001, 0x1fffff750001,
+			0x1fffff690001, 0x1fffff630001,
+			0x1fffff360001, 0x1fffff1b0001,
+			0x1fffff060001, 0x1ffffefd0001,
+			0x1ffffef30001, 0x1ffffede0001,
+			0x1ffffeca0001, 0x1ffffec30001,
 		},
-		P:     0x1fffffcf0001,                                 // 45
+		P:     0x7fffffffe90001,                               // 55
 		R:     []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
 		Sigma: rlwe.DefaultSigma,
 	}
@@ -151,27 +150,37 @@ func TestFRLWE(t *testing.T) {
 func testInnerProduct(testctx *testContext, t *testing.T) {
 	params := testctx.params
 	ksw := testctx.ksw
+	rlk := testctx.rlk
 	sk := testctx.sk
 	ringQ := params.RingQ()
 
 	t.Run("InnerProduct", func(t *testing.T) {
 		a := ringQ.NewPoly()
-		bg := testctx.kgen.GenSwitchingKey(sk)
-		c := ringQ.NewPoly()
+		bg0 := rlk.Value[0]
+		bg1 := rlk.Value[1]
+
+		c0 := ringQ.NewPoly()
+		c1 := ringQ.NewPoly()
 
 		testctx.uSamplerQ.Read(a)
-		ksw.InternalProduct(params.MaxLevel(), a, bg, c)
 
-		ringQ.NTT(c, c)
+		ksw.InternalProduct(params.MaxLevel(), a, bg0, c0)
+		ksw.InternalProduct(params.MaxLevel(), a, bg1, c1)
+
+		ringQ.NTT(c0, c0)
+		ringQ.NTT(c1, c1)
 		ringQ.NTT(a, a)
 
 		ringQ.MulCoeffsMontgomery(a, sk.Value.Q, a)
-		ringQ.Sub(c, a, c)
-		ringQ.InvNTT(c, c)
+		ringQ.MulCoeffsMontgomery(a, sk.Value.Q, a)
+
+		ringQ.MulCoeffsMontgomeryAndAdd(c1, sk.Value.Q, c0)
+
+		ringQ.Sub(c0, a, c0)
+		ringQ.InvNTT(c0, c0)
 
 		log2Bound := bits.Len64(uint64(math.Floor(rlwe.DefaultSigma*6)) * uint64(params.N()))
-		require.GreaterOrEqual(t, log2Bound, log2OfInnerSum(params.MaxLevel(), params.RingQ(), c))
+		require.GreaterOrEqual(t, log2Bound+3, log2OfInnerSum(params.MaxLevel(), params.RingQ(), c0))
 
 	})
-
 }
