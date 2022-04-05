@@ -10,6 +10,7 @@ type KeySwitcher struct {
 	params Parameters
 
 	gadgetVec []rlwe.PolyQP
+	halfR     *big.Int
 
 	polyRPools1 []*ring.Poly
 	polyRPools2 []*ring.Poly
@@ -17,12 +18,13 @@ type KeySwitcher struct {
 	polyQPPool1 rlwe.PolyQP
 	polyQPPool2 rlwe.PolyQP
 
-	polyRHalfR  *ring.Poly
-	polyQPHalfR rlwe.PolyQP
+	polyQPool *ring.Poly
 
-	convQP *ring.BasisExtender
-	convRP *ring.BasisExtender
-	convRQ *ring.BasisExtender
+	convQP  *ring.BasisExtender
+	convRP  *ring.BasisExtender
+	convRQi []*ring.BasisExtender
+
+	ringQi []*ring.Ring
 }
 
 func NewKeySwitcher(params Parameters) *KeySwitcher {
@@ -35,18 +37,23 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ksw.polyQPPool1 = params.RingQP().NewPoly()
 	ksw.polyQPPool2 = params.RingQP().NewPoly()
 
+	ksw.polyQPool = params.RingQ().NewPoly()
+
 	ringQ := params.RingQ()
 	ringP := params.RingP()
 	ringQP := params.RingQP()
 	ringR := params.RingR()
 
-	ksw.polyQPHalfR = ringQP.NewPoly()
-	ksw.polyRHalfR = ringR.NewPoly()
-	halfR := big.NewInt(0).Div(ringR.ModulusBigint, big.NewInt(2))
+	alpha := params.Alpha()
+	beta := params.Beta()
 
-	ringR.AddScalarBigint(ksw.polyRHalfR, halfR, ksw.polyRHalfR)
-	ringQ.AddScalarBigint(ksw.polyQPHalfR.Q, halfR, ksw.polyQPHalfR.Q)
-	ringP.AddScalarBigint(ksw.polyQPHalfR.P, halfR, ksw.polyQPHalfR.P)
+	//generate ringQi
+	ksw.ringQi = make([]*ring.Ring, beta)
+	for i := 0; i < beta; i++ {
+		ksw.ringQi[i], _ = ring.NewRing(params.N(), []uint64{ringQ.Modulus[i]})
+	}
+
+	ksw.halfR = big.NewInt(0).Div(ringR.ModulusBigint, big.NewInt(2))
 
 	for i := 0; i < len(ksw.polyRPools1); i++ {
 		ksw.polyRPools1[i] = ringR.NewPoly()
@@ -58,7 +65,11 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 
 	ksw.convQP = ring.NewBasisExtender(ringQ, ringP)
 	ksw.convRP = ring.NewBasisExtender(ringR, ringP)
-	ksw.convRQ = ring.NewBasisExtender(ringR, ringQ)
+
+	ksw.convRQi = make([]*ring.BasisExtender, beta)
+	for i := 0; i < beta; i++ {
+		ksw.convRQi[i] = ring.NewBasisExtender(ringR, ksw.ringQi[i])
+	}
 
 	for i := 0; i < len(ksw.gadgetVec); i++ {
 		ksw.gadgetVec[i] = ringQP.NewPoly()
@@ -66,8 +77,6 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 
 	//generate gadget vector
 	bigIntQP := big.NewInt(1).Mul(params.RingQ().ModulusBigint, params.RingP().ModulusBigint)
-	alpha := params.Alpha()
-	beta := params.Beta()
 
 	for i := 0; i < beta; i++ {
 		qi := big.NewInt(int64(params.RingQ().Modulus[i]))
@@ -75,9 +84,9 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 		qiHat := big.NewInt(0).ModInverse(gi, qi)
 		gi.Mul(gi, qiHat)
 		ringQ.AddScalarBigint(ksw.gadgetVec[i].Q, gi, ksw.gadgetVec[i].Q)
-		ringQ.MForm(ksw.gadgetVec[i].Q, ksw.gadgetVec[i].Q)
 		ringP.AddScalarBigint(ksw.gadgetVec[i].P, gi, ksw.gadgetVec[i].P)
-		ringP.MForm(ksw.gadgetVec[i].P, ksw.gadgetVec[i].P)
+
+		ringQP.MFormLvl(beta-1, alpha-1, ksw.gadgetVec[i], ksw.gadgetVec[i])
 	}
 
 	for i := beta; i < beta+alpha; i++ {
@@ -86,9 +95,9 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 		piHat := big.NewInt(0).ModInverse(gi, pi)
 		gi.Mul(gi, piHat)
 		ringQ.AddScalarBigint(ksw.gadgetVec[i].Q, gi, ksw.gadgetVec[i].Q)
-		ringQ.MForm(ksw.gadgetVec[i].Q, ksw.gadgetVec[i].Q)
 		ringP.AddScalarBigint(ksw.gadgetVec[i].P, gi, ksw.gadgetVec[i].P)
-		ringP.MForm(ksw.gadgetVec[i].P, ksw.gadgetVec[i].P)
+
+		ringQP.MFormLvl(beta-1, alpha-1, ksw.gadgetVec[i], ksw.gadgetVec[i])
 	}
 
 	return ksw
@@ -99,6 +108,8 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 
 	params := ksw.params
 	ringQP := params.RingQP()
+	ringQ := params.RingQ()
+	ringP := params.RingP()
 	ringR := params.RingR()
 
 	alpha := params.Alpha()
@@ -149,25 +160,23 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 	ksw.polyQPPool2.P.Zero()
 
 	for i := 0; i < levelQ+1; i++ {
-		ringR.Add(ksw.polyRPools2[i], ksw.polyRHalfR, ksw.polyRPools2[i])
-		ksw.convRQ.ModUpQtoP(levelR, levelQ, ksw.polyRPools2[i], ksw.polyQPPool1.Q)
-		ksw.convRP.ModUpQtoP(levelR, levelP, ksw.polyRPools2[i], ksw.polyQPPool1.P)
+		ringR.AddScalarBigint(ksw.polyRPools2[i], ksw.halfR, ksw.polyRPools2[i])
+		ksw.convRQi[i].ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
+		ksw.ringQi[i].SubScalarBigintLvl(0, ksw.polyQPool, ksw.halfR, ksw.polyQPool)
 
-		ringQP.SubLvl(levelQ, levelP, ksw.polyQPPool1, ksw.polyQPHalfR, ksw.polyQPPool1)
-
-		ringQP.MulCoeffsMontgomeryLvl(levelQ, levelP, ksw.polyQPPool1, ksw.gadgetVec[i], ksw.polyQPPool1)
+		ringQ.MulByVectorMontgomeryLvl(levelQ, ksw.gadgetVec[i].Q, ksw.polyQPool.Coeffs[0], ksw.polyQPPool1.Q)
+		ringP.MulByVectorMontgomeryLvl(levelP, ksw.gadgetVec[i].P, ksw.polyQPool.Coeffs[0], ksw.polyQPPool1.P)
 
 		ringQP.AddLvl(levelQ, levelP, ksw.polyQPPool1, ksw.polyQPPool2, ksw.polyQPPool2)
 	}
 
 	for i := beta; i < beta+alpha; i++ {
-		ringR.Add(ksw.polyRPools2[i], ksw.polyRHalfR, ksw.polyRPools2[i])
-		ksw.convRQ.ModUpQtoP(levelR, levelQ, ksw.polyRPools2[i], ksw.polyQPPool1.Q)
-		ksw.convRP.ModUpQtoP(levelR, levelP, ksw.polyRPools2[i], ksw.polyQPPool1.P)
+		ringR.AddScalarBigint(ksw.polyRPools2[i], ksw.halfR, ksw.polyRPools2[i])
+		ksw.convRP.ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
+		ringP.SubScalarBigintLvl(0, ksw.polyQPool, ksw.halfR, ksw.polyQPool)
 
-		ringQP.SubLvl(levelQ, levelP, ksw.polyQPPool1, ksw.polyQPHalfR, ksw.polyQPPool1)
-
-		ringQP.MulCoeffsMontgomeryLvl(levelQ, levelP, ksw.polyQPPool1, ksw.gadgetVec[i], ksw.polyQPPool1)
+		ringQ.MulByVectorMontgomeryLvl(levelQ, ksw.gadgetVec[i].Q, ksw.polyQPool.Coeffs[0], ksw.polyQPPool1.Q)
+		ringP.MulByVectorMontgomeryLvl(levelP, ksw.gadgetVec[i].P, ksw.polyQPool.Coeffs[0], ksw.polyQPPool1.P)
 
 		ringQP.AddLvl(levelQ, levelP, ksw.polyQPPool1, ksw.polyQPPool2, ksw.polyQPPool2)
 	}
