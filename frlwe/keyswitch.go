@@ -111,12 +111,9 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 		panic("a should not be in NTT")
 	}
 
-	//move coeffs of a into ringR
-	aCoeffs := a.GetCoefficients()
-
 	for i := 0; i < levelQ+1; i++ {
-		ringR.SetCoefficientsUint64(aCoeffs[i], ksw.polyRPools1[i])
-		ringR.NTT(ksw.polyRPools1[i], ksw.polyRPools1[i])
+		ringR.SetCoefficientsUint64(a.Coeffs[i], ksw.polyRPools1[i])
+		ringR.NTTLazy(ksw.polyRPools1[i], ksw.polyRPools1[i])
 	}
 
 	//set polyRPools2 to zero
@@ -140,11 +137,11 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 	}
 
 	for i := 0; i < levelQ+1; i++ {
-		ringR.InvNTT(ksw.polyRPools2[i], ksw.polyRPools2[i])
+		ringR.InvNTTLazy(ksw.polyRPools2[i], ksw.polyRPools2[i])
 	}
 
 	for i := 0; i < alpha; i++ {
-		ringR.InvNTT(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
+		ringR.InvNTTLazy(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
 	}
 
 	//move coeffs to ringQP
