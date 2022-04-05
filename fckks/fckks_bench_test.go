@@ -5,7 +5,7 @@ import (
 )
 
 func BenchmarkFCKKS(b *testing.B) {
-	params := NewParametersFromLiteral(PN15QP880)
+	params := NewParametersFromLiteral(PN16QP1760)
 	testctx, err := genTestParams(params)
 	if err != nil {
 		panic(err)

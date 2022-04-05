@@ -29,7 +29,7 @@ var (
 			0x1ffffef30001, 0x1ffffede0001,
 			0x1ffffeca0001, 0x1ffffec30001,
 		},
-		P:            0x7fffffffe90001,                               // 55
+		P:            0x3ffffffd20001,                                // 50 bit
 		R:            []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
 		Sigma:        rlwe.DefaultSigma,
 		DefaultScale: 1 << 45,
@@ -57,7 +57,7 @@ var (
 			0x1ffffb7e0001, 0x1ffffb5e0001,
 			0x1ffffb240001, 0x1ffffb120001,
 		},
-		P:            0x7fffffffba0001,                               // 55 bit
+		P:            0x3ffffffd20001,                                // 50 bit
 		R:            []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
 		Sigma:        rlwe.DefaultSigma,
 		DefaultScale: 1 << 45,
