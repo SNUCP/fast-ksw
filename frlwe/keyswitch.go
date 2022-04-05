@@ -139,16 +139,39 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 	}
 
 	//product and sum up coeffs
+	RiOverFlow := params.RiOverflowMargin(levelR) >> 1
+	reduce := 0
+
 	for i := 0; i < levelQ+1; i++ {
 		for j := 0; j < levelQ+1; j++ {
-			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg.Value[i][j], ksw.polyRPools2[j])
+			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg.Value[i][j], ksw.polyRPools2[j])
+
+			if reduce%RiOverFlow == RiOverFlow-1 {
+				ringR.Reduce(ksw.polyRPools2[j], ksw.polyRPools2[j])
+			}
 		}
 
 		for j := 0; j < alpha; j++ {
-			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
+			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
+
+			if reduce%RiOverFlow == RiOverFlow-1 {
+				ringR.Reduce(ksw.polyRPools2[j+beta], ksw.polyRPools2[j+beta])
+			}
+		}
+
+		reduce++
+	}
+
+	if reduce%RiOverFlow != 0 {
+		for i := 0; i < levelQ+1; i++ {
+			ringR.Reduce(ksw.polyRPools2[i], ksw.polyRPools2[i])
+		}
+		for i := 0; i < alpha; i++ {
+			ringR.Reduce(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
 		}
 	}
 
+	// apply invNTT
 	for i := 0; i < levelQ+1; i++ {
 		ringR.InvNTTLazy(ksw.polyRPools2[i], ksw.polyRPools2[i])
 	}
@@ -211,13 +234,35 @@ func (ksw *KeySwitcher) SwitchKey(levelQ int, a *ring.Poly, bg0, bg1 *SwitchingK
 	}
 
 	//product and sum up coeffs
+	RiOverFlow := params.RiOverflowMargin(levelR) >> 1
+	reduce := 0
+
 	for i := 0; i < levelQ+1; i++ {
 		for j := 0; j < levelQ+1; j++ {
-			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg0.Value[i][j], ksw.polyRPools2[j])
+			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg0.Value[i][j], ksw.polyRPools2[j])
+
+			if reduce%RiOverFlow == RiOverFlow-1 {
+				ringR.Reduce(ksw.polyRPools2[j], ksw.polyRPools2[j])
+			}
 		}
 
 		for j := 0; j < alpha; j++ {
-			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg0.Value[i][j+beta], ksw.polyRPools2[j+beta])
+			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg0.Value[i][j+beta], ksw.polyRPools2[j+beta])
+
+			if reduce%RiOverFlow == RiOverFlow-1 {
+				ringR.Reduce(ksw.polyRPools2[j+beta], ksw.polyRPools2[j+beta])
+			}
+		}
+
+		reduce++
+	}
+
+	if reduce%RiOverFlow != 0 {
+		for i := 0; i < levelQ+1; i++ {
+			ringR.Reduce(ksw.polyRPools2[i], ksw.polyRPools2[i])
+		}
+		for i := 0; i < alpha; i++ {
+			ringR.Reduce(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
 		}
 	}
 
@@ -258,14 +303,34 @@ func (ksw *KeySwitcher) SwitchKey(levelQ int, a *ring.Poly, bg0, bg1 *SwitchingK
 		ksw.polyRPools2[i+beta].Zero()
 	}
 
-	//product and sum up coeffs
+	reduce = 0
+
 	for i := 0; i < levelQ+1; i++ {
 		for j := 0; j < levelQ+1; j++ {
-			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg1.Value[i][j], ksw.polyRPools2[j])
+			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg1.Value[i][j], ksw.polyRPools2[j])
+
+			if reduce%RiOverFlow == RiOverFlow-1 {
+				ringR.Reduce(ksw.polyRPools2[j], ksw.polyRPools2[j])
+			}
 		}
 
 		for j := 0; j < alpha; j++ {
-			ringR.MulCoeffsMontgomeryAndAdd(ksw.polyRPools1[i], bg1.Value[i][j+beta], ksw.polyRPools2[j+beta])
+			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg1.Value[i][j+beta], ksw.polyRPools2[j+beta])
+
+			if reduce%RiOverFlow == RiOverFlow-1 {
+				ringR.Reduce(ksw.polyRPools2[j+beta], ksw.polyRPools2[j+beta])
+			}
+		}
+
+		reduce++
+	}
+
+	if reduce%RiOverFlow != 0 {
+		for i := 0; i < levelQ+1; i++ {
+			ringR.Reduce(ksw.polyRPools2[i], ksw.polyRPools2[i])
+		}
+		for i := 0; i < alpha; i++ {
+			ringR.Reduce(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
 		}
 	}
 

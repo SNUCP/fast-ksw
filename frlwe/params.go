@@ -3,6 +3,8 @@ package frlwe
 import (
 	"github.com/tuneinsight/lattigo/v3/ring"
 	"github.com/tuneinsight/lattigo/v3/rlwe"
+	"github.com/tuneinsight/lattigo/v3/utils"
+	"math"
 )
 
 type ParametersLiteral struct {
@@ -42,4 +44,8 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 
 func (p Parameters) RingR() *ring.Ring {
 	return p.ringR
+}
+
+func (p *Parameters) RiOverflowMargin(level int) int {
+	return int(math.Exp2(64) / float64(utils.MaxSliceUint64(p.ringR.Modulus[:level+1])))
 }

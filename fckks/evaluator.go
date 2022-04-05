@@ -57,11 +57,15 @@ func (eval *Evaluator) MulRelin(ct0, ct1 *ckks.Ciphertext, rlk *frlwe.RelinKey, 
 	ringQ := eval.params.RingQ()
 	ringQ.InvNTTLvl(ctOut.Level(), ctOut.Value[2], eval.polyQPool[0])
 
-	eval.ksw.InternalProduct(ctOut.Level(), eval.polyQPool[0], rlk.Value[0], eval.polyQPool[1])
-	eval.ksw.InternalProduct(ctOut.Level(), eval.polyQPool[0], rlk.Value[1], eval.polyQPool[2])
+	/*
+		eval.ksw.InternalProduct(ctOut.Level(), eval.polyQPool[0], rlk.Value[0], eval.polyQPool[1])
+		eval.ksw.InternalProduct(ctOut.Level(), eval.polyQPool[0], rlk.Value[1], eval.polyQPool[2])
+	*/
 
-	ringQ.NTTLvl(ctOut.Level(), eval.polyQPool[1], eval.polyQPool[1])
-	ringQ.NTTLvl(ctOut.Level(), eval.polyQPool[2], eval.polyQPool[2])
+	eval.ksw.SwitchKey(ctOut.Level(), eval.polyQPool[0], rlk.Value[0], rlk.Value[1], eval.polyQPool[1], eval.polyQPool[2])
+
+	ringQ.NTTLazyLvl(ctOut.Level(), eval.polyQPool[1], eval.polyQPool[1])
+	ringQ.NTTLazyLvl(ctOut.Level(), eval.polyQPool[2], eval.polyQPool[2])
 
 	ringQ.AddLvl(ctOut.Level(), eval.polyQPool[1], ctOut.Value[0], ctOut.Value[0])
 	ringQ.AddLvl(ctOut.Level(), eval.polyQPool[2], ctOut.Value[1], ctOut.Value[1])
