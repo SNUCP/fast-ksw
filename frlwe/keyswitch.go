@@ -15,8 +15,7 @@ type KeySwitcher struct {
 	polyRPools1 []*ring.Poly
 	polyRPools2 []*ring.Poly
 
-	polyQPPool1 rlwe.PolyQP
-	polyQPPool2 rlwe.PolyQP
+	polyQPPool rlwe.PolyQP
 
 	polyQPool *ring.Poly
 
@@ -34,9 +33,7 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ksw.polyRPools1 = make([]*ring.Poly, params.Alpha()+params.Beta())
 	ksw.polyRPools2 = make([]*ring.Poly, params.Alpha()+params.Beta())
 
-	ksw.polyQPPool1 = params.RingQP().NewPoly()
-	ksw.polyQPPool2 = params.RingQP().NewPoly()
-
+	ksw.polyQPPool = params.RingQP().NewPoly()
 	ksw.polyQPool = params.RingQ().NewPoly()
 
 	ringQ := params.RingQ()
@@ -107,8 +104,6 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingKey, c *ring.Poly) {
 
 	params := ksw.params
-	ringQP := params.RingQP()
-	ringQ := params.RingQ()
 	ringP := params.RingP()
 	ringR := params.RingR()
 
@@ -156,18 +151,15 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 	}
 
 	//move coeffs to ringQP
-	ksw.polyQPPool2.Q.Zero()
-	ksw.polyQPPool2.P.Zero()
+	ksw.polyQPPool.Q.Zero()
+	ksw.polyQPPool.P.Zero()
 
 	for i := 0; i < levelQ+1; i++ {
 		ringR.AddScalarBigint(ksw.polyRPools2[i], ksw.halfR, ksw.polyRPools2[i])
 		ksw.convRQi[i].ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
 		ksw.ringQi[i].SubScalarBigintLvl(0, ksw.polyQPool, ksw.halfR, ksw.polyQPool)
 
-		ringQ.MulByVectorMontgomeryLvl(levelQ, ksw.gadgetVec[i].Q, ksw.polyQPool.Coeffs[0], ksw.polyQPPool1.Q)
-		ringP.MulByVectorMontgomeryLvl(levelP, ksw.gadgetVec[i].P, ksw.polyQPool.Coeffs[0], ksw.polyQPPool1.P)
-
-		ringQP.AddLvl(levelQ, levelP, ksw.polyQPPool1, ksw.polyQPPool2, ksw.polyQPPool2)
+		copy(ksw.polyQPPool.Q.Coeffs[i], ksw.polyQPool.Coeffs[0])
 	}
 
 	for i := beta; i < beta+alpha; i++ {
@@ -175,14 +167,11 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 		ksw.convRP.ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
 		ringP.SubScalarBigintLvl(0, ksw.polyQPool, ksw.halfR, ksw.polyQPool)
 
-		ringQ.MulByVectorMontgomeryLvl(levelQ, ksw.gadgetVec[i].Q, ksw.polyQPool.Coeffs[0], ksw.polyQPPool1.Q)
-		ringP.MulByVectorMontgomeryLvl(levelP, ksw.gadgetVec[i].P, ksw.polyQPool.Coeffs[0], ksw.polyQPPool1.P)
-
-		ringQP.AddLvl(levelQ, levelP, ksw.polyQPPool1, ksw.polyQPPool2, ksw.polyQPPool2)
+		copy(ksw.polyQPPool.P.Coeffs[i-beta], ksw.polyQPool.Coeffs[0])
 	}
 
 	//Div by P
-	ksw.convQP.ModDownQPtoQ(levelQ, levelP, ksw.polyQPPool2.Q, ksw.polyQPPool2.P, c)
+	ksw.convQP.ModDownQPtoQ(levelQ, levelP, ksw.polyQPPool.Q, ksw.polyQPPool.P, c)
 
 	return
 }
