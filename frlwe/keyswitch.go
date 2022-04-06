@@ -108,7 +108,7 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 }
 
 //assume input a and output c is in InvNTT form
-func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingKey, c *ring.Poly) {
+func (ksw *KeySwitcher) internalProduct(levelQ int, aPolyRs []*ring.Poly, bg *SwitchingKey, c *ring.Poly) {
 
 	params := ksw.params
 	ringQP := params.RingQP()
@@ -119,15 +119,6 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 
 	levelP := params.PCount() - 1
 	levelR := len(ringR.Modulus) - 1
-
-	if a.IsNTT {
-		panic("a should not be in NTT")
-	}
-
-	for i := 0; i < levelQ+1; i++ {
-		ringR.SetCoefficientsUint64(a.Coeffs[i], ksw.polyRPools1[i])
-		ringR.NTTLazy(ksw.polyRPools1[i], ksw.polyRPools1[i])
-	}
 
 	//set polyRPools2 to zero
 	for i := 0; i < levelQ+1; i++ {
@@ -144,7 +135,7 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 
 	for i := 0; i < levelQ+1; i++ {
 		for j := 0; j < levelQ+1; j++ {
-			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg.Value[i][j], ksw.polyRPools2[j])
+			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j], ksw.polyRPools2[j])
 
 			if reduce%RiOverFlow == RiOverFlow-1 {
 				ringR.Reduce(ksw.polyRPools2[j], ksw.polyRPools2[j])
@@ -152,7 +143,7 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 		}
 
 		for j := 0; j < alpha; j++ {
-			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
+			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
 
 			if reduce%RiOverFlow == RiOverFlow-1 {
 				ringR.Reduce(ksw.polyRPools2[j+beta], ksw.polyRPools2[j+beta])
@@ -206,13 +197,7 @@ func (ksw *KeySwitcher) InternalProduct(levelQ int, a *ring.Poly, bg *SwitchingK
 func (ksw *KeySwitcher) SwitchKey(levelQ int, a *ring.Poly, bg0, bg1 *SwitchingKey, c0, c1 *ring.Poly) {
 
 	params := ksw.params
-	ringQP := params.RingQP()
 	ringR := params.RingR()
-
-	alpha := params.Alpha()
-	beta := params.Beta()
-
-	levelP := params.PCount() - 1
 	levelR := len(ringR.Modulus) - 1
 
 	if a.IsNTT {
@@ -220,147 +205,16 @@ func (ksw *KeySwitcher) SwitchKey(levelQ int, a *ring.Poly, bg0, bg1 *SwitchingK
 	}
 
 	for i := 0; i < levelQ+1; i++ {
-		ringR.SetCoefficientsUint64(a.Coeffs[i], ksw.polyRPools1[i])
+
+		for j := 0; j < levelR+1; j++ {
+			copy(ksw.polyRPools1[i].Coeffs[j], a.Coeffs[i])
+		}
+
 		ringR.NTTLazy(ksw.polyRPools1[i], ksw.polyRPools1[i])
 	}
 
-	//set polyRPools2 to zero
-	for i := 0; i < levelQ+1; i++ {
-		ksw.polyRPools2[i].Zero()
-	}
-
-	for i := 0; i < alpha; i++ {
-		ksw.polyRPools2[i+beta].Zero()
-	}
-
-	//product and sum up coeffs
-	RiOverFlow := params.RiOverflowMargin(levelR) >> 1
-	reduce := 0
-
-	for i := 0; i < levelQ+1; i++ {
-		for j := 0; j < levelQ+1; j++ {
-			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg0.Value[i][j], ksw.polyRPools2[j])
-
-			if reduce%RiOverFlow == RiOverFlow-1 {
-				ringR.Reduce(ksw.polyRPools2[j], ksw.polyRPools2[j])
-			}
-		}
-
-		for j := 0; j < alpha; j++ {
-			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg0.Value[i][j+beta], ksw.polyRPools2[j+beta])
-
-			if reduce%RiOverFlow == RiOverFlow-1 {
-				ringR.Reduce(ksw.polyRPools2[j+beta], ksw.polyRPools2[j+beta])
-			}
-		}
-
-		reduce++
-	}
-
-	if reduce%RiOverFlow != 0 {
-		for i := 0; i < levelQ+1; i++ {
-			ringR.Reduce(ksw.polyRPools2[i], ksw.polyRPools2[i])
-		}
-		for i := 0; i < alpha; i++ {
-			ringR.Reduce(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
-		}
-	}
-
-	for i := 0; i < levelQ+1; i++ {
-		ringR.InvNTTLazy(ksw.polyRPools2[i], ksw.polyRPools2[i])
-	}
-
-	for i := 0; i < alpha; i++ {
-		ringR.InvNTTLazy(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
-	}
-
-	//move coeffs to ringQP
-	for i := 0; i < levelQ+1; i++ {
-		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
-		ksw.convRQi[i].ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
-
-		copy(ksw.polyQPPool.Q.Coeffs[i], ksw.polyQPool.Coeffs[0])
-	}
-
-	for i := beta; i < beta+alpha; i++ {
-		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
-		ksw.convRP.ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
-
-		copy(ksw.polyQPPool.P.Coeffs[i-beta], ksw.polyQPool.Coeffs[0])
-	}
-
-	ringQP.SubLvl(levelQ, levelP, ksw.polyQPPool, ksw.halfRPolyQP, ksw.polyQPPool)
-
-	//Div by P
-	ksw.convQP.ModDownQPtoQ(levelQ, levelP, ksw.polyQPPool.Q, ksw.polyQPPool.P, c0)
-
-	//set polyRPools2 to zero
-	for i := 0; i < levelQ+1; i++ {
-		ksw.polyRPools2[i].Zero()
-	}
-
-	for i := 0; i < alpha; i++ {
-		ksw.polyRPools2[i+beta].Zero()
-	}
-
-	reduce = 0
-
-	for i := 0; i < levelQ+1; i++ {
-		for j := 0; j < levelQ+1; j++ {
-			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg1.Value[i][j], ksw.polyRPools2[j])
-
-			if reduce%RiOverFlow == RiOverFlow-1 {
-				ringR.Reduce(ksw.polyRPools2[j], ksw.polyRPools2[j])
-			}
-		}
-
-		for j := 0; j < alpha; j++ {
-			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(ksw.polyRPools1[i], bg1.Value[i][j+beta], ksw.polyRPools2[j+beta])
-
-			if reduce%RiOverFlow == RiOverFlow-1 {
-				ringR.Reduce(ksw.polyRPools2[j+beta], ksw.polyRPools2[j+beta])
-			}
-		}
-
-		reduce++
-	}
-
-	if reduce%RiOverFlow != 0 {
-		for i := 0; i < levelQ+1; i++ {
-			ringR.Reduce(ksw.polyRPools2[i], ksw.polyRPools2[i])
-		}
-		for i := 0; i < alpha; i++ {
-			ringR.Reduce(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
-		}
-	}
-
-	for i := 0; i < levelQ+1; i++ {
-		ringR.InvNTTLazy(ksw.polyRPools2[i], ksw.polyRPools2[i])
-	}
-
-	for i := 0; i < alpha; i++ {
-		ringR.InvNTTLazy(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
-	}
-
-	//move coeffs to ringQP
-	for i := 0; i < levelQ+1; i++ {
-		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
-		ksw.convRQi[i].ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
-
-		copy(ksw.polyQPPool.Q.Coeffs[i], ksw.polyQPool.Coeffs[0])
-	}
-
-	for i := beta; i < beta+alpha; i++ {
-		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
-		ksw.convRP.ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
-
-		copy(ksw.polyQPPool.P.Coeffs[i-beta], ksw.polyQPool.Coeffs[0])
-	}
-
-	ringQP.SubLvl(levelQ, levelP, ksw.polyQPPool, ksw.halfRPolyQP, ksw.polyQPPool)
-
-	//Div by P
-	ksw.convQP.ModDownQPtoQ(levelQ, levelP, ksw.polyQPPool.Q, ksw.polyQPPool.P, c1)
+	ksw.internalProduct(levelQ, ksw.polyRPools1, bg0, c0)
+	ksw.internalProduct(levelQ, ksw.polyRPools1, bg1, c1)
 
 	return
 }

@@ -164,8 +164,7 @@ func testInnerProduct(testctx *testContext, t *testing.T) {
 
 		testctx.uSamplerQ.Read(a)
 
-		ksw.InternalProduct(params.MaxLevel(), a, bg0, c0)
-		ksw.InternalProduct(params.MaxLevel(), a, bg1, c1)
+		ksw.SwitchKey(params.MaxLevel(), a, bg0, bg1, c0, c1)
 
 		ringQ.NTT(c0, c0)
 		ringQ.NTT(c1, c1)
