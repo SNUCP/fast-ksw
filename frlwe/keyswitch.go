@@ -9,7 +9,6 @@ import (
 type KeySwitcher struct {
 	params Parameters
 
-	gadgetVec   []rlwe.PolyQP
 	halfRPolyQP rlwe.PolyQP
 	halfRPolyR  *ring.Poly
 
@@ -30,7 +29,6 @@ type KeySwitcher struct {
 func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ksw := new(KeySwitcher)
 	ksw.params = params
-	ksw.gadgetVec = make([]rlwe.PolyQP, params.Alpha()+params.Beta())
 	ksw.polyRPools1 = make([]*ring.Poly, params.Alpha()+params.Beta())
 	ksw.polyRPools2 = make([]*ring.Poly, params.Alpha()+params.Beta())
 
@@ -42,7 +40,6 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ringQP := params.RingQP()
 	ringR := params.RingR()
 
-	alpha := params.Alpha()
 	beta := params.Beta()
 
 	//generate ringQi
@@ -73,35 +70,6 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ksw.convRQi = make([]*ring.BasisExtender, beta)
 	for i := 0; i < beta; i++ {
 		ksw.convRQi[i] = ring.NewBasisExtender(ringR, ksw.ringQi[i])
-	}
-
-	for i := 0; i < len(ksw.gadgetVec); i++ {
-		ksw.gadgetVec[i] = ringQP.NewPoly()
-	}
-
-	//generate gadget vector
-	bigIntQP := big.NewInt(1).Mul(params.RingQ().ModulusBigint, params.RingP().ModulusBigint)
-
-	for i := 0; i < beta; i++ {
-		qi := big.NewInt(int64(params.RingQ().Modulus[i]))
-		gi := big.NewInt(0).Div(bigIntQP, qi)
-		qiHat := big.NewInt(0).ModInverse(gi, qi)
-		gi.Mul(gi, qiHat)
-		ringQ.AddScalarBigint(ksw.gadgetVec[i].Q, gi, ksw.gadgetVec[i].Q)
-		ringP.AddScalarBigint(ksw.gadgetVec[i].P, gi, ksw.gadgetVec[i].P)
-
-		ringQP.MFormLvl(beta-1, alpha-1, ksw.gadgetVec[i], ksw.gadgetVec[i])
-	}
-
-	for i := beta; i < beta+alpha; i++ {
-		pi := big.NewInt(int64(params.RingP().Modulus[i-beta]))
-		gi := big.NewInt(0).Div(bigIntQP, pi)
-		piHat := big.NewInt(0).ModInverse(gi, pi)
-		gi.Mul(gi, piHat)
-		ringQ.AddScalarBigint(ksw.gadgetVec[i].Q, gi, ksw.gadgetVec[i].Q)
-		ringP.AddScalarBigint(ksw.gadgetVec[i].P, gi, ksw.gadgetVec[i].P)
-
-		ringQP.MFormLvl(beta-1, alpha-1, ksw.gadgetVec[i], ksw.gadgetVec[i])
 	}
 
 	return ksw
