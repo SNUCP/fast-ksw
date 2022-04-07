@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	PN15QP880 = ParametersLiteral{
+	PN15QP860 = ParametersLiteral{
 		LogN: 15,
 		Q: []uint64{ // 45 x 18
 			0x1fffffcf0001, 0x1fffffc20001,
@@ -117,7 +117,7 @@ func newTestVectors(testctx *testContext, a, b complex128) (msg *Message, cipher
 }
 
 func TestFCKKS(t *testing.T) {
-	params := NewParametersFromLiteral(PN15QP880)
+	params := NewParametersFromLiteral(PN15QP860)
 	testctx, err := genTestParams(params)
 	if err != nil {
 		panic(err)
@@ -138,8 +138,8 @@ func testEncrypt(testctx *testContext, t *testing.T) {
 		msgOut := dec.DecryptToMsgNew(ctxt)
 		for i := 0; i < slots; i++ {
 			delta := msg.Value[i] - msgOut.Value[i]
-			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+7, math.Log2(math.Abs(real(delta))))
-			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+7, math.Log2(math.Abs(imag(delta))))
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+8, math.Log2(math.Abs(real(delta))))
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+8, math.Log2(math.Abs(imag(delta))))
 		}
 	})
 }

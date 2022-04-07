@@ -108,7 +108,7 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 }
 
 //assume input a and output c is in InvNTT form
-func (ksw *KeySwitcher) internalProduct(levelQ int, aPolyRs []*ring.Poly, bg *SwitchingKey, c *ring.Poly) {
+func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyRs []*ring.Poly, bg *SwitchingKey, c *ring.Poly) {
 
 	params := ksw.params
 	ringQP := params.RingQP()
@@ -120,22 +120,17 @@ func (ksw *KeySwitcher) internalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 	levelP := params.PCount() - 1
 	levelR := len(ringR.Modulus) - 1
 
-	//set polyRPools2 to zero
-	for i := 0; i < levelQ+1; i++ {
-		ksw.polyRPools2[i].Zero()
-	}
-
-	for i := 0; i < alpha; i++ {
-		ksw.polyRPools2[i+beta].Zero()
-	}
-
 	//product and sum up coeffs
 	RiOverFlow := params.RiOverflowMargin(levelR) >> 1
 	reduce := 0
 
 	for i := 0; i < levelQ+1; i++ {
 		for j := 0; j < levelQ+1; j++ {
-			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j], ksw.polyRPools2[j])
+			if i == 0 {
+				ringR.MulCoeffsMontgomeryConstant(aPolyRs[i], bg.Value[i][j], ksw.polyRPools2[j])
+			} else {
+				ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j], ksw.polyRPools2[j])
+			}
 
 			if reduce%RiOverFlow == RiOverFlow-1 {
 				ringR.Reduce(ksw.polyRPools2[j], ksw.polyRPools2[j])
@@ -143,7 +138,11 @@ func (ksw *KeySwitcher) internalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 		}
 
 		for j := 0; j < alpha; j++ {
-			ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
+			if i == 0 {
+				ringR.MulCoeffsMontgomeryConstant(aPolyRs[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
+			} else {
+				ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
+			}
 
 			if reduce%RiOverFlow == RiOverFlow-1 {
 				ringR.Reduce(ksw.polyRPools2[j+beta], ksw.polyRPools2[j+beta])
@@ -205,16 +204,13 @@ func (ksw *KeySwitcher) SwitchKey(levelQ int, a *ring.Poly, bg0, bg1 *SwitchingK
 	}
 
 	for i := 0; i < levelQ+1; i++ {
-
 		for j := 0; j < levelR+1; j++ {
-			copy(ksw.polyRPools1[i].Coeffs[j], a.Coeffs[i])
+			ringR.NTTSingleLazy(j, a.Coeffs[i], ksw.polyRPools1[i].Coeffs[j])
 		}
-
-		ringR.NTTLazy(ksw.polyRPools1[i], ksw.polyRPools1[i])
 	}
 
-	ksw.internalProduct(levelQ, ksw.polyRPools1, bg0, c0)
-	ksw.internalProduct(levelQ, ksw.polyRPools1, bg1, c1)
+	ksw.externalProduct(levelQ, ksw.polyRPools1, bg0, c0)
+	ksw.externalProduct(levelQ, ksw.polyRPools1, bg1, c1)
 
 	return
 }
