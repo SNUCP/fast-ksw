@@ -36,6 +36,10 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 		panic("cannot NewParametersFromLiteral: ringR cannot be generated")
 	}
 
+	if len(pl.Q)%(len(pl.R)-1) != 0 {
+		panic("invalid ring R")
+	}
+
 	params.Parameters = rlweParams
 	params.ringR = ringR
 
@@ -46,6 +50,10 @@ func (p Parameters) RingR() *ring.Ring {
 	return p.ringR
 }
 
-func (p *Parameters) RiOverflowMargin(level int) int {
+func (p Parameters) RiOverflowMargin(level int) int {
 	return int(math.Exp2(64) / float64(utils.MaxSliceUint64(p.ringR.Modulus[:level+1])))
+}
+
+func (p Parameters) Gamma() int {
+	return len(p.ringR.Modulus) - 1
 }

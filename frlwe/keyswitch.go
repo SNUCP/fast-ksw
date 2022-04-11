@@ -41,11 +41,17 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ringR := params.RingR()
 
 	beta := params.Beta()
+	gamma := params.Gamma()
 
 	//generate ringQi
-	ksw.ringQi = make([]*ring.Ring, beta)
-	for i := 0; i < beta; i++ {
-		ksw.ringQi[i], _ = ring.NewRing(params.N(), []uint64{ringQ.Modulus[i]})
+	ksw.ringQi = make([]*ring.Ring, beta/gamma)
+	for i := 0; i < beta/gamma; i++ {
+		modulusQi := make([]uint64, 0)
+		for j := 0; j < gamma; j++ {
+			modulusQi = append(modulusQi, ringQ.Modulus[i*gamma+j])
+		}
+
+		ksw.ringQi[i], _ = ring.NewRing(params.N(), modulusQi)
 	}
 
 	halfR := big.NewInt(0).Div(ringR.ModulusBigint, big.NewInt(2))
@@ -68,7 +74,7 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ksw.convRP = ring.NewBasisExtender(ringR, ringP)
 
 	ksw.convRQi = make([]*ring.BasisExtender, beta)
-	for i := 0; i < beta; i++ {
+	for i := 0; i < beta/gamma; i++ {
 		ksw.convRQi[i] = ring.NewBasisExtender(ringR, ksw.ringQi[i])
 	}
 
@@ -82,8 +88,9 @@ func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 	ringQP := params.RingQP()
 	ringR := params.RingR()
 
-	alpha := params.Alpha()
 	beta := params.Beta()
+	alpha := params.Alpha()
+	gamma := params.Gamma()
 
 	levelP := params.PCount() - 1
 	levelR := len(ringR.Modulus) - 1
@@ -93,7 +100,7 @@ func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 	reduce := 0
 
 	for i := 0; i < levelQ+1; i++ {
-		for j := 0; j < levelQ+1; j++ {
+		for j := 0; j < beta/gamma; j++ {
 			if i == 0 {
 				ringR.MulCoeffsMontgomeryConstant(aPolyRs[i], bg.Value[i][j], ksw.polyRPools2[j])
 			} else {
@@ -107,13 +114,13 @@ func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 
 		for j := 0; j < alpha; j++ {
 			if i == 0 {
-				ringR.MulCoeffsMontgomeryConstant(aPolyRs[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
+				ringR.MulCoeffsMontgomeryConstant(aPolyRs[i], bg.Value[i][j+beta/gamma], ksw.polyRPools2[j+beta/gamma])
 			} else {
-				ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j+beta], ksw.polyRPools2[j+beta])
+				ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j+beta/gamma], ksw.polyRPools2[j+beta/gamma])
 			}
 
 			if reduce%RiOverFlow == RiOverFlow-1 {
-				ringR.Reduce(ksw.polyRPools2[j+beta], ksw.polyRPools2[j+beta])
+				ringR.Reduce(ksw.polyRPools2[j+beta/gamma], ksw.polyRPools2[j+beta/gamma])
 			}
 		}
 
@@ -121,36 +128,37 @@ func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 	}
 
 	if reduce%RiOverFlow != 0 {
-		for i := 0; i < levelQ+1; i++ {
+		for i := 0; i < beta/gamma; i++ {
 			ringR.Reduce(ksw.polyRPools2[i], ksw.polyRPools2[i])
 		}
 		for i := 0; i < alpha; i++ {
-			ringR.Reduce(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
+			ringR.Reduce(ksw.polyRPools2[i+beta/gamma], ksw.polyRPools2[i+beta/gamma])
 		}
 	}
 
 	// apply invNTT
-	for i := 0; i < levelQ+1; i++ {
+	for i := 0; i < beta/gamma; i++ {
 		ringR.InvNTTLazy(ksw.polyRPools2[i], ksw.polyRPools2[i])
 	}
 
 	for i := 0; i < alpha; i++ {
-		ringR.InvNTTLazy(ksw.polyRPools2[i+beta], ksw.polyRPools2[i+beta])
+		ringR.InvNTTLazy(ksw.polyRPools2[i+beta/gamma], ksw.polyRPools2[i+beta/gamma])
 	}
 
 	//move coeffs to ringQP
-	for i := 0; i < levelQ+1; i++ {
+	for i := 0; i < beta/gamma; i++ {
 		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
-		ksw.convRQi[i].ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
+		ksw.convRQi[i].ModUpQtoP(levelR, gamma-1, ksw.polyRPools2[i], ksw.polyQPool)
 
-		copy(ksw.polyQPPool.Q.Coeffs[i], ksw.polyQPool.Coeffs[0])
+		for j := 0; j < gamma; j++ {
+			copy(ksw.polyQPPool.Q.Coeffs[i*gamma+j], ksw.polyQPool.Coeffs[j])
+		}
 	}
 
-	for i := beta; i < beta+alpha; i++ {
+	for i := beta / gamma; i < beta/gamma+alpha; i++ {
 		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
 		ksw.convRP.ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
-
-		copy(ksw.polyQPPool.P.Coeffs[i-beta], ksw.polyQPool.Coeffs[0])
+		copy(ksw.polyQPPool.P.Coeffs[i-beta/gamma], ksw.polyQPool.Coeffs[0])
 	}
 
 	ringQP.SubLvl(levelQ, levelP, ksw.polyQPPool, ksw.halfRPolyQP, ksw.polyQPPool)

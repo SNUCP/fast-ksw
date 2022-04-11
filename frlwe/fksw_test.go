@@ -27,8 +27,12 @@ var (
 			0x1ffffef30001, 0x1ffffede0001,
 			0x1ffffeca0001, 0x1ffffec30001,
 		},
-		P:     0x7fffffffe90001,                               // 55
-		R:     []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
+		P: 0x7fffffffe90001, // 55
+		//R:     []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
+		R: []uint64{
+			0xffffffffffc0001, 0xfffffffff840001,
+			0xfffffffff6a0001},
+
 		Sigma: rlwe.DefaultSigma,
 	}
 )

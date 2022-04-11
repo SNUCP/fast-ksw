@@ -8,12 +8,39 @@ import (
 type KeyGenerator struct {
 	rlwe.KeyGenerator
 	params Parameters
+
+	ringQi  []*ring.Ring
+	convQiR []*ring.BasisExtender
+	convPR  *ring.BasisExtender
+
+	polyQPool *ring.Poly
 }
 
 func NewKeyGenerator(params Parameters) (keygen *KeyGenerator) {
 	keygen = new(KeyGenerator)
 	keygen.KeyGenerator = rlwe.NewKeyGenerator(params.Parameters)
 	keygen.params = params
+
+	keygen.ringQi = make([]*ring.Ring, params.Beta()/params.Gamma())
+	keygen.convQiR = make([]*ring.BasisExtender, params.Beta()/params.Gamma())
+
+	beta := params.Beta()
+	gamma := params.Gamma()
+
+	ringQ := params.RingQ()
+
+	for i := 0; i < beta/gamma; i++ {
+		modulusQi := make([]uint64, 0)
+		for j := 0; j < gamma; j++ {
+			modulusQi = append(modulusQi, ringQ.Modulus[i*gamma+j])
+		}
+
+		keygen.ringQi[i], _ = ring.NewRing(params.N(), modulusQi)
+		keygen.convQiR[i] = ring.NewBasisExtender(keygen.ringQi[i], params.RingR())
+	}
+	keygen.convPR = ring.NewBasisExtender(params.RingP(), params.RingR())
+
+	keygen.polyQPool = params.RingQ().NewPolyLvl(gamma - 1)
 
 	return
 }
@@ -29,8 +56,8 @@ func (keygen *KeyGenerator) GenPublicKey(sk *rlwe.SecretKey) *rlwe.PublicKey {
 func (keygen *KeyGenerator) polyQPToPolyRs(polyQP rlwe.PolyQP, polyRs []*ring.Poly) {
 
 	params := keygen.params
-	alpha := params.Alpha()
 	beta := params.Beta()
+	gamma := params.Gamma()
 
 	ringR := params.RingR()
 
@@ -38,17 +65,24 @@ func (keygen *KeyGenerator) polyQPToPolyRs(polyQP rlwe.PolyQP, polyRs []*ring.Po
 	coeffsQ := polyQP.Q.GetCoefficients()
 	coeffsP := polyQP.P.GetCoefficients()
 
-	for j := 0; j < beta; j++ {
-		ringR.SetCoefficientsUint64(coeffsQ[j], polyRs[j])
-		ringR.NTT(polyRs[j], polyRs[j])
-		ringR.MForm(polyRs[j], polyRs[j])
+	for i := 0; i < beta/gamma; i++ {
+
+		//copy coeffcients
+		for j := 0; j < gamma; j++ {
+			copy(keygen.polyQPool.Coeffs[j], coeffsQ[i*gamma+j])
+		}
+
+		keygen.convQiR[i].ModUpQtoP(gamma-1, gamma, keygen.polyQPool, polyRs[i])
+
+		ringR.NTT(polyRs[i], polyRs[i])
+		ringR.MForm(polyRs[i], polyRs[i])
 	}
 
-	for j := beta; j < alpha+beta; j++ {
-		ringR.SetCoefficientsUint64(coeffsP[j-beta], polyRs[j])
-		ringR.NTT(polyRs[j], polyRs[j])
-		ringR.MForm(polyRs[j], polyRs[j])
-	}
+	// special modulus part
+	ringR.SetCoefficientsUint64(coeffsP[0], polyRs[beta/gamma])
+	ringR.NTT(polyRs[beta/gamma], polyRs[beta/gamma])
+	ringR.MForm(polyRs[beta/gamma], polyRs[beta/gamma])
+
 }
 
 func (keygen *KeyGenerator) GenRelinKey(sk *rlwe.SecretKey) (rlk *RelinKey) {

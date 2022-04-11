@@ -2,6 +2,7 @@ package frlwe
 
 import (
 	"github.com/tuneinsight/lattigo/v3/ring"
+	"math"
 )
 
 type SwitchingKey struct {
@@ -15,7 +16,7 @@ type RelinKey struct {
 func NewSwitchingKey(params Parameters) *SwitchingKey {
 
 	gadgetDim := params.Beta()
-	decompDim := params.Beta() + params.Alpha()
+	decompDim := int(math.Ceil(float64(params.Alpha()+params.Beta()) / float64(params.Gamma())))
 
 	swk := new(SwitchingKey)
 	swk.Value = make([][]*ring.Poly, gadgetDim)
