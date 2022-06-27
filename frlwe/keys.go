@@ -15,16 +15,21 @@ type RelinKey struct {
 
 func NewSwitchingKey(params Parameters) *SwitchingKey {
 
-	gadgetDim := params.Beta()
-	decompDim := int(math.Ceil(float64(params.Alpha()+params.Beta()) / float64(params.Gamma())))
+	level := params.MaxLevel()
+	beta := params.Beta()
+	alpha := params.Alpha()
+	gamma := params.Gamma()
+
+	blockLenQi := int(math.Ceil(float64(level+1) / float64(gamma)))
+	blockLenPi := int(math.Ceil(float64(alpha) / float64(gamma)))
 
 	swk := new(SwitchingKey)
-	swk.Value = make([][]*ring.Poly, gadgetDim)
+	swk.Value = make([][]*ring.Poly, beta)
 
-	for i := 0; i < gadgetDim; i++ {
-		swk.Value[i] = make([]*ring.Poly, decompDim)
+	for i := 0; i < beta; i++ {
+		swk.Value[i] = make([]*ring.Poly, blockLenQi+blockLenPi)
 
-		for j := 0; j < decompDim; j++ {
+		for j := 0; j < blockLenQi+blockLenPi; j++ {
 			swk.Value[i][j] = params.RingR().NewPoly()
 		}
 	}
