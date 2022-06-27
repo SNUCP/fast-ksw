@@ -27,11 +27,13 @@ var (
 			0x1ffffef30001, 0x1ffffede0001,
 			0x1ffffeca0001, 0x1ffffec30001,
 		},
-		P: 0x7fffffffe90001, // 55
-		//R:     []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
-		R: []uint64{
-			0xffffffffffc0001, 0xfffffffff840001,
-			0xfffffffff6a0001},
+		P: []uint64{ // 50 x 2
+			0x3ffffffd20001, 0x3ffffffb80001,
+		},
+		R: []uint64{ // 55 x 4
+			0x7fffffffba0001, 0x7fffffffaa0001,
+			0x7fffffff7e0001, 0x7fffffff380001,
+		},
 
 		Sigma: rlwe.DefaultSigma,
 	}
@@ -148,17 +150,17 @@ func TestFRLWE(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	testInnerProduct(testctx, t)
+	testExternalProduct(testctx, t)
 }
 
-func testInnerProduct(testctx *testContext, t *testing.T) {
+func testExternalProduct(testctx *testContext, t *testing.T) {
 	params := testctx.params
 	ksw := testctx.ksw
 	rlk := testctx.rlk
 	sk := testctx.sk
 	ringQ := params.RingQ()
 
-	t.Run("InnerProduct", func(t *testing.T) {
+	t.Run("ExternalProduct", func(t *testing.T) {
 		a := ringQ.NewPoly()
 		bg0 := rlk.Value[0]
 		bg1 := rlk.Value[1]

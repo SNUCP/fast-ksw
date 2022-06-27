@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	PN15QP860 = ParametersLiteral{
+	PN15QP870 = ParametersLiteral{
 		LogN: 15,
 		Q: []uint64{ // 45 x 18
 			0x1fffffcf0001, 0x1fffffc20001,
@@ -27,14 +27,20 @@ var (
 			0x1fffff360001, 0x1fffff1b0001,
 			0x1fffff060001, 0x1ffffefd0001,
 			0x1ffffef30001, 0x1ffffede0001,
-			0x1ffffeca0001, 0x1ffffec30001,
+			//0x1ffffeca0001, 0x1ffffec30001,
 		},
-		P: 0xffffffffffc0001, // 60 bit
-		//R:            []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
 
-		R: []uint64{
-			0xffffffff00001, 0xfffffffe40001,
-			0xfffffffe20001},
+		P: []uint64{ // 50 x 4
+			0x3ffffffd20001, 0x3ffffffb80001,
+			0x3fffffed60001, 0x3fffffec80001,
+		},
+
+		R: []uint64{ // 55 x 8 bit
+			0x7fffffffba0001, 0x7fffffffaa0001,
+			0x7fffffff7e0001, 0x7fffffff380001,
+			0x7ffffffef00001, 0x7ffffffeba0001,
+			0x7ffffffeac0001, 0x7ffffffe700001,
+		},
 
 		Sigma:        rlwe.DefaultSigma,
 		DefaultScale: 1 << 45,
@@ -43,7 +49,9 @@ var (
 
 	PN16QP1760 = ParametersLiteral{
 		LogN: 16,
-		Q: []uint64{ // 45 x 34
+		Q: []uint64{ // 59 + 45 x 33
+			0x7ffffffffcc0001,
+
 			0x1fffffc20001, 0x1fffff980001,
 			0x1fffff7e0001, 0x1fffff360001,
 			0x1fffff060001, 0x1ffffede0001,
@@ -60,17 +68,22 @@ var (
 			0x1ffffbc40001, 0x1ffffbbe0001,
 			0x1ffffb9a0001, 0x1ffffb900001,
 			0x1ffffb7e0001, 0x1ffffb5e0001,
-			0x1ffffb240001, 0x1ffffb120001,
+			0x1ffffb240001,
 		},
-		P: 0xffffffffffc0001, // 60 bit
-		//R:            []uint64{0xffffffffffc0001, 0xfffffffff840001}, // 60 x 2 bit
+		P: []uint64{ // 55 x 4
+			0x7fffffffba0001, 0x7fffffffaa0001,
+			0x7fffffff7e0001, //0x7fffffff380001,
+		},
 
-		R: []uint64{
-			0xffffffff00001, 0xfffffffe40001,
-			0xfffffffe20001},
+		R: []uint64{ // 57 x 7 bit
+			0x1fffffffffc0001, 0x1ffffffff8c0001,
+			0x1ffffffff840001, 0x1ffffffff360001,
+			0x1ffffffff0c0001, 0x1fffffffee40001,
+			0x1fffffffe840001,
+		},
 
 		Sigma:        rlwe.DefaultSigma,
-		DefaultScale: 1 << 45,
+		DefaultScale: 1 << 50,
 		LogSlots:     15,
 	}
 )
@@ -127,7 +140,7 @@ func newTestVectors(testctx *testContext, a, b complex128) (msg *Message, cipher
 }
 
 func TestFCKKS(t *testing.T) {
-	params := NewParametersFromLiteral(PN15QP860)
+	params := NewParametersFromLiteral(PN15QP870)
 	testctx, err := genTestParams(params)
 	if err != nil {
 		panic(err)
@@ -172,8 +185,8 @@ func testEval(testctx *testContext, t *testing.T) {
 
 		for i := 0; i < slots; i++ {
 			delta := msg1.Value[i] + msg2.Value[i] - msgOut.Value[i]
-			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+8, math.Log2(math.Abs(real(delta))))
-			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+8, math.Log2(math.Abs(imag(delta))))
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+9, math.Log2(math.Abs(real(delta))))
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+9, math.Log2(math.Abs(imag(delta))))
 
 		}
 	})

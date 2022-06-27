@@ -36,10 +36,6 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 		panic("cannot NewParametersFromLiteral: ringR cannot be generated")
 	}
 
-	if len(pl.Q)%(len(pl.R)-1) != 0 {
-		panic("invalid ring R")
-	}
-
 	params.Parameters = rlweParams
 	params.ringR = ringR
 

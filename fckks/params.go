@@ -9,7 +9,7 @@ import (
 type ParametersLiteral struct {
 	LogN         int
 	Q            []uint64
-	P            uint64
+	P            []uint64
 	R            []uint64
 	LogQ         []int `json:",omitempty"`
 	LogP         []int `json:",omitempty"`
@@ -29,7 +29,7 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 		ckks.ParametersLiteral{
 			LogN:         pl.LogN,
 			Q:            pl.Q,
-			P:            []uint64{pl.P},
+			P:            pl.P,
 			LogQ:         pl.LogQ,
 			LogP:         pl.LogP,
 			H:            pl.H,

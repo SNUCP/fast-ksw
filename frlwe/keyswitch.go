@@ -3,6 +3,7 @@ package frlwe
 import (
 	"github.com/tuneinsight/lattigo/v3/ring"
 	"github.com/tuneinsight/lattigo/v3/rlwe"
+	"math"
 	"math/big"
 )
 
@@ -20,17 +21,31 @@ type KeySwitcher struct {
 	polyQPool *ring.Poly
 
 	convQP  *ring.BasisExtender
-	convRP  *ring.BasisExtender
+	convRPi []*ring.BasisExtender
 	convRQi []*ring.BasisExtender
 
+	convQjR []*ring.BasisExtender
+	convPR  *ring.BasisExtender
+
 	ringQi []*ring.Ring
+	ringQj []*ring.Ring
+	ringPi []*ring.Ring
 }
 
 func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ksw := new(KeySwitcher)
 	ksw.params = params
-	ksw.polyRPools1 = make([]*ring.Poly, params.Alpha()+params.Beta())
-	ksw.polyRPools2 = make([]*ring.Poly, params.Alpha()+params.Beta())
+
+	alpha := params.Alpha()
+	beta := params.Beta()
+	gamma := params.Gamma()
+	level := params.MaxLevel()
+
+	blockLenQi := int(math.Ceil(float64(level+1) / float64(gamma)))
+	blockLenPi := int(math.Ceil(float64(alpha) / float64(gamma)))
+
+	ksw.polyRPools1 = make([]*ring.Poly, beta)
+	ksw.polyRPools2 = make([]*ring.Poly, blockLenQi+blockLenPi)
 
 	ksw.polyQPPool = params.RingQP().NewPoly()
 	ksw.polyQPool = params.RingQ().NewPoly()
@@ -40,20 +55,47 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ringQP := params.RingQP()
 	ringR := params.RingR()
 
-	beta := params.Beta()
-	gamma := params.Gamma()
+	ksw.convQP = ring.NewBasisExtender(ringQ, ringP)
 
-	//generate ringQi
-	ksw.ringQi = make([]*ring.Ring, beta/gamma)
-	for i := 0; i < beta/gamma; i++ {
+	// generate ringQi
+	ksw.ringQi = make([]*ring.Ring, blockLenQi)
+	for i := 0; i < blockLenQi; i++ {
 		modulusQi := make([]uint64, 0)
 		for j := 0; j < gamma; j++ {
-			modulusQi = append(modulusQi, ringQ.Modulus[i*gamma+j])
+			if i*gamma+j < level+1 {
+				modulusQi = append(modulusQi, ringQ.Modulus[i*gamma+j])
+			}
 		}
 
 		ksw.ringQi[i], _ = ring.NewRing(params.N(), modulusQi)
 	}
 
+	// generate convRQi
+	ksw.convRQi = make([]*ring.BasisExtender, blockLenQi)
+	for i := 0; i < blockLenQi; i++ {
+		ksw.convRQi[i] = ring.NewBasisExtender(ringR, ksw.ringQi[i])
+	}
+
+	// generate ringPi
+	ksw.ringPi = make([]*ring.Ring, blockLenPi)
+	for i := 0; i < blockLenPi; i++ {
+		modulusPi := make([]uint64, 0)
+		for j := 0; j < gamma; j++ {
+			if i*gamma+j < alpha {
+				modulusPi = append(modulusPi, ringP.Modulus[i*gamma+j])
+			}
+		}
+
+		ksw.ringPi[i], _ = ring.NewRing(params.N(), modulusPi)
+	}
+
+	// generate convRPi
+	ksw.convRPi = make([]*ring.BasisExtender, blockLenPi)
+	for i := 0; i < blockLenPi; i++ {
+		ksw.convRPi[i] = ring.NewBasisExtender(ringR, ksw.ringPi[i])
+	}
+
+	// generate precomputable constants
 	halfR := big.NewInt(0).Div(ringR.ModulusBigint, big.NewInt(2))
 	ksw.halfRPolyQP = ringQP.NewPoly()
 	ringQ.AddScalarBigint(ksw.halfRPolyQP.Q, halfR, ksw.halfRPolyQP.Q)
@@ -62,6 +104,7 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ksw.halfRPolyR = ringR.NewPoly()
 	ringR.AddScalarBigint(ksw.halfRPolyR, halfR, ksw.halfRPolyR)
 
+	// generate poly pools
 	for i := 0; i < len(ksw.polyRPools1); i++ {
 		ksw.polyRPools1[i] = ringR.NewPoly()
 	}
@@ -70,12 +113,26 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 		ksw.polyRPools2[i] = ringR.NewPoly()
 	}
 
-	ksw.convQP = ring.NewBasisExtender(ringQ, ringP)
-	ksw.convRP = ring.NewBasisExtender(ringR, ringP)
+	// generate convPR
+	ksw.convPR = ring.NewBasisExtender(ringP, ringR)
 
-	ksw.convRQi = make([]*ring.BasisExtender, beta)
-	for i := 0; i < beta/gamma; i++ {
-		ksw.convRQi[i] = ring.NewBasisExtender(ringR, ksw.ringQi[i])
+	// generate ringQj
+	ksw.ringQj = make([]*ring.Ring, beta)
+	for i := 0; i < beta; i++ {
+		modulusQj := make([]uint64, 0)
+		for j := 0; j < alpha; j++ {
+			if i*alpha+j < level+1 {
+				modulusQj = append(modulusQj, ringQ.Modulus[i*alpha+j])
+			}
+		}
+
+		ksw.ringQj[i], _ = ring.NewRing(params.N(), modulusQj)
+	}
+
+	// generate convQjR
+	ksw.convQjR = make([]*ring.BasisExtender, beta)
+	for i := 0; i < beta; i++ {
+		ksw.convQjR[i] = ring.NewBasisExtender(ksw.ringQj[i], ringR)
 	}
 
 	return ksw
@@ -88,19 +145,23 @@ func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 	ringQP := params.RingQP()
 	ringR := params.RingR()
 
-	beta := params.Beta()
 	alpha := params.Alpha()
+	beta := int(math.Ceil(float64(levelQ+1) / float64(alpha)))
 	gamma := params.Gamma()
 
 	levelP := params.PCount() - 1
 	levelR := len(ringR.Modulus) - 1
 
+	blockLenQi := int(math.Ceil(float64(levelQ+1) / float64(gamma)))
+	maxBlockLenQi := int(math.Ceil(float64(params.MaxLevel()+1) / float64(gamma)))
+	blockLenPi := int(math.Ceil(float64(alpha) / float64(gamma)))
+
 	//product and sum up coeffs
 	RiOverFlow := params.RiOverflowMargin(levelR) >> 1
 	reduce := 0
 
-	for i := 0; i < levelQ+1; i++ {
-		for j := 0; j < beta/gamma; j++ {
+	for i := 0; i < beta; i++ {
+		for j := 0; j < blockLenQi; j++ {
 			if i == 0 {
 				ringR.MulCoeffsMontgomeryConstant(aPolyRs[i], bg.Value[i][j], ksw.polyRPools2[j])
 			} else {
@@ -112,15 +173,15 @@ func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 			}
 		}
 
-		for j := 0; j < alpha; j++ {
+		for j := maxBlockLenQi; j < maxBlockLenQi+blockLenPi; j++ {
 			if i == 0 {
-				ringR.MulCoeffsMontgomeryConstant(aPolyRs[i], bg.Value[i][j+beta/gamma], ksw.polyRPools2[j+beta/gamma])
+				ringR.MulCoeffsMontgomeryConstant(aPolyRs[i], bg.Value[i][j], ksw.polyRPools2[j])
 			} else {
-				ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j+beta/gamma], ksw.polyRPools2[j+beta/gamma])
+				ringR.MulCoeffsMontgomeryConstantAndAddNoMod(aPolyRs[i], bg.Value[i][j], ksw.polyRPools2[j])
 			}
 
 			if reduce%RiOverFlow == RiOverFlow-1 {
-				ringR.Reduce(ksw.polyRPools2[j+beta/gamma], ksw.polyRPools2[j+beta/gamma])
+				ringR.Reduce(ksw.polyRPools2[j], ksw.polyRPools2[j])
 			}
 		}
 
@@ -128,37 +189,55 @@ func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyRs []*ring.Poly, bg *Sw
 	}
 
 	if reduce%RiOverFlow != 0 {
-		for i := 0; i < beta/gamma; i++ {
+		for i := 0; i < blockLenQi; i++ {
 			ringR.Reduce(ksw.polyRPools2[i], ksw.polyRPools2[i])
 		}
-		for i := 0; i < alpha; i++ {
-			ringR.Reduce(ksw.polyRPools2[i+beta/gamma], ksw.polyRPools2[i+beta/gamma])
+
+		for i := maxBlockLenQi; i < maxBlockLenQi+blockLenPi; i++ {
+			ringR.Reduce(ksw.polyRPools2[i], ksw.polyRPools2[i])
 		}
 	}
 
 	// apply invNTT
-	for i := 0; i < beta/gamma; i++ {
+	for i := 0; i < blockLenQi; i++ {
 		ringR.InvNTTLazy(ksw.polyRPools2[i], ksw.polyRPools2[i])
 	}
 
-	for i := 0; i < alpha; i++ {
-		ringR.InvNTTLazy(ksw.polyRPools2[i+beta/gamma], ksw.polyRPools2[i+beta/gamma])
+	for i := maxBlockLenQi; i < maxBlockLenQi+blockLenPi; i++ {
+		ringR.InvNTTLazy(ksw.polyRPools2[i], ksw.polyRPools2[i])
 	}
 
 	//move coeffs to ringQP
-	for i := 0; i < beta/gamma; i++ {
-		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
-		ksw.convRQi[i].ModUpQtoP(levelR, gamma-1, ksw.polyRPools2[i], ksw.polyQPool)
-
+	for i := 0; i < blockLenQi; i++ {
+		levelQi := -1
 		for j := 0; j < gamma; j++ {
+			if i*gamma+j < levelQ+1 {
+				levelQi += 1
+			}
+		}
+
+		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
+		ksw.convRQi[i].ModUpQtoP(levelR, levelQi, ksw.polyRPools2[i], ksw.polyQPool)
+
+		for j := 0; j < levelQi+1; j++ {
 			copy(ksw.polyQPPool.Q.Coeffs[i*gamma+j], ksw.polyQPool.Coeffs[j])
 		}
 	}
 
-	for i := beta / gamma; i < beta/gamma+alpha; i++ {
-		ringR.AddNoMod(ksw.polyRPools2[i], ksw.halfRPolyR, ksw.polyRPools2[i])
-		ksw.convRP.ModUpQtoP(levelR, 0, ksw.polyRPools2[i], ksw.polyQPool)
-		copy(ksw.polyQPPool.P.Coeffs[i-beta/gamma], ksw.polyQPool.Coeffs[0])
+	for i := 0; i < blockLenPi; i++ {
+		levelPi := -1
+		for j := 0; j < gamma; j++ {
+			if i*gamma+j < alpha {
+				levelPi += 1
+			}
+		}
+
+		ringR.AddNoMod(ksw.polyRPools2[i+maxBlockLenQi], ksw.halfRPolyR, ksw.polyRPools2[i+maxBlockLenQi])
+		ksw.convRPi[i].ModUpQtoP(levelR, levelPi, ksw.polyRPools2[i+maxBlockLenQi], ksw.polyQPool)
+
+		for j := 0; j < levelPi+1; j++ {
+			copy(ksw.polyQPPool.P.Coeffs[i*gamma+j], ksw.polyQPool.Coeffs[j])
+		}
 	}
 
 	ringQP.SubLvl(levelQ, levelP, ksw.polyQPPool, ksw.halfRPolyQP, ksw.polyQPPool)
@@ -179,10 +258,20 @@ func (ksw *KeySwitcher) SwitchKey(levelQ int, a *ring.Poly, bg0, bg1 *SwitchingK
 		panic("a should not be in NTT")
 	}
 
-	for i := 0; i < levelQ+1; i++ {
-		for j := 0; j < levelR+1; j++ {
-			ringR.NTTSingleLazy(j, a.Coeffs[i], ksw.polyRPools1[i].Coeffs[j])
+	alpha := params.Alpha()
+	beta := int(math.Ceil(float64(levelQ+1) / float64(alpha)))
+
+	for i := 0; i < beta; i++ {
+		levelQj := -1
+		for j := 0; j < alpha; j++ {
+			if i*alpha+j < levelQ+1 {
+				levelQj++
+				copy(ksw.polyQPool.Coeffs[j], a.Coeffs[i*alpha+j])
+			}
 		}
+
+		ksw.convQjR[i].ModUpQtoP(levelQj, levelR, ksw.polyQPool, ksw.polyRPools1[i])
+		ringR.NTT(ksw.polyRPools1[i], ksw.polyRPools1[i])
 	}
 
 	ksw.externalProduct(levelQ, ksw.polyRPools1, bg0, c0)

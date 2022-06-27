@@ -97,7 +97,7 @@ func (keygen *KeyGenerator) polyQPToPolyRs(polyQP rlwe.PolyQP, polyRs []*ring.Po
 	// embedd ringQi into ringR
 	for i := 0; i < blockLenQi; i++ {
 
-		levelQi := 0
+		levelQi := -1
 		for j := 0; j < gamma; j++ {
 			if i*gamma+j < level+1 {
 				levelQi++
@@ -114,7 +114,7 @@ func (keygen *KeyGenerator) polyQPToPolyRs(polyQP rlwe.PolyQP, polyRs []*ring.Po
 	// embedd ringP into ringR
 	for i := 0; i < blockLenPi; i++ {
 
-		levelPi := 0
+		levelPi := -1
 		for j := 0; j < gamma; j++ {
 			if i*gamma+j < alpha {
 				levelPi++
