@@ -10,7 +10,7 @@ type ParametersLiteral struct {
 	LogN         int
 	Q            []uint64
 	P            []uint64
-	R            []uint64
+	T            []uint64
 	LogQ         []int `json:",omitempty"`
 	LogP         []int `json:",omitempty"`
 	Sigma        float64
@@ -48,7 +48,7 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 			LogN:  pl.LogN,
 			Q:     pl.Q,
 			P:     pl.P,
-			R:     pl.R,
+			T:     pl.T,
 			LogQ:  pl.LogQ,
 			LogP:  pl.LogP,
 			H:     pl.H,

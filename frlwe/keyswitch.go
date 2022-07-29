@@ -91,11 +91,10 @@ func NewKeySwitcher(params Parameters) *KeySwitcher {
 	ringQ.AddScalarBigint(ksw.halfTPolyQP.Q, halfT, ksw.halfTPolyQP.Q)
 	ringP.AddScalarBigint(ksw.halfTPolyQP.P, halfT, ksw.halfTPolyQP.P)
 
-	ksw.halfTPolyT = ringR.NewPoly()
-	ringR.AddScalarBigint(ksw.halfTPolyT, halfT, ksw.halfTPolyT)
+	ksw.halfTPolyT = ringT.NewPoly()
+	ringT.AddScalarBigint(ksw.halfTPolyT, halfT, ksw.halfTPolyT)
 
 	// generate poly pools
-
 	ksw.polyTPools1 = make([]*ring.Poly, beta)
 	ksw.polyTPools2 = make([]*ring.Poly, blockLen)
 

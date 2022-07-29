@@ -32,14 +32,14 @@ var (
 
 		P: []uint64{ // 50 x 4
 			0x3ffffffd20001, 0x3ffffffb80001,
-			0x3fffffed60001, 0x3fffffec80001,
+			0x3fffffed60001, //0x3fffffec80001,
 		},
 
-		R: []uint64{ // 55 x 8 bit
+		T: []uint64{ // 55 x 8 bit
 			0x7fffffffba0001, 0x7fffffffaa0001,
 			0x7fffffff7e0001, 0x7fffffff380001,
 			0x7ffffffef00001, 0x7ffffffeba0001,
-			0x7ffffffeac0001, 0x7ffffffe700001,
+			//0x7ffffffeac0001, 0x7ffffffe700001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
@@ -75,11 +75,11 @@ var (
 			0x7fffffff7e0001, //0x7fffffff380001,
 		},
 
-		R: []uint64{ // 57 x 7 bit
+		T: []uint64{ // 57 x 7 bit
 			0x1fffffffffc0001, 0x1ffffffff8c0001,
 			0x1ffffffff840001, 0x1ffffffff360001,
 			0x1ffffffff0c0001, 0x1fffffffee40001,
-			0x1fffffffe840001,
+			0x1fffffffe840001, //0x1fffffffe6c0001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
@@ -140,7 +140,7 @@ func newTestVectors(testctx *testContext, a, b complex128) (msg *Message, cipher
 }
 
 func TestFCKKS(t *testing.T) {
-	params := NewParametersFromLiteral(PN15QP870)
+	params := NewParametersFromLiteral(PN16QP1760)
 	testctx, err := genTestParams(params)
 	if err != nil {
 		panic(err)

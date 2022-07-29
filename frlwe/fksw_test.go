@@ -28,7 +28,7 @@ var (
 			0x1ffffeca0001, 0x1ffffec30001,
 		},
 		P: []uint64{ // 50 x 2
-			0x3ffffffd20001, 0x3ffffffb80001,
+			0x3ffffffd20001, //0x3ffffffb80001,
 		},
 		T: []uint64{ // 55 x 4
 			0x7fffffffba0001, 0x7fffffffaa0001,
