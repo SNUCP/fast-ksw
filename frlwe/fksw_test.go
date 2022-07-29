@@ -30,7 +30,7 @@ var (
 		P: []uint64{ // 50 x 2
 			0x3ffffffd20001, 0x3ffffffb80001,
 		},
-		R: []uint64{ // 55 x 4
+		T: []uint64{ // 55 x 4
 			0x7fffffffba0001, 0x7fffffffaa0001,
 			0x7fffffff7e0001, 0x7fffffff380001,
 		},

@@ -11,7 +11,7 @@ type ParametersLiteral struct {
 	LogN  int
 	Q     []uint64
 	P     []uint64
-	R     []uint64
+	T     []uint64
 	LogQ  []int `json:",omitempty"`
 	LogP  []int `json:",omitempty"`
 	Sigma float64
@@ -21,6 +21,7 @@ type ParametersLiteral struct {
 type Parameters struct {
 	rlwe.Parameters
 	ringR *ring.Ring
+	ringT *ring.Ring
 }
 
 func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
@@ -31,12 +32,22 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 	}
 
 	N := (1 << pl.LogN)
-	ringR, err := ring.NewRing(N, pl.R)
+	ringT, err := ring.NewRing(N, pl.T)
+	if err != nil {
+		panic("cannot NewParametersFromLiteral: ringT cannot be generated")
+	}
+
+	moduliR := make([]uint64, 0)
+	moduliR = append(moduliR, pl.P...)
+	moduliR = append(moduliR, pl.Q...)
+
+	ringR, err := ring.NewRing(N, moduliR)
 	if err != nil {
 		panic("cannot NewParametersFromLiteral: ringR cannot be generated")
 	}
 
 	params.Parameters = rlweParams
+	params.ringT = ringT
 	params.ringR = ringR
 
 	return
@@ -46,10 +57,14 @@ func (p Parameters) RingR() *ring.Ring {
 	return p.ringR
 }
 
-func (p Parameters) RiOverflowMargin(level int) int {
-	return int(math.Exp2(64) / float64(utils.MaxSliceUint64(p.ringR.Modulus[:level+1])))
+func (p Parameters) RingT() *ring.Ring {
+	return p.ringT
+}
+
+func (p Parameters) TiOverflowMargin(level int) int {
+	return int(math.Exp2(64) / float64(utils.MaxSliceUint64(p.ringT.Modulus[:level+1])))
 }
 
 func (p Parameters) Gamma() int {
-	return len(p.ringR.Modulus) - p.Alpha()
+	return len(p.ringT.Modulus) - p.Alpha()
 }

@@ -20,17 +20,16 @@ func NewSwitchingKey(params Parameters) *SwitchingKey {
 	alpha := params.Alpha()
 	gamma := params.Gamma()
 
-	blockLenQi := int(math.Ceil(float64(level+1) / float64(gamma)))
-	blockLenPi := int(math.Ceil(float64(alpha) / float64(gamma)))
+	blockLen := int(math.Ceil(float64(level+alpha+1) / float64(gamma)))
 
 	swk := new(SwitchingKey)
 	swk.Value = make([][]*ring.Poly, beta)
 
 	for i := 0; i < beta; i++ {
-		swk.Value[i] = make([]*ring.Poly, blockLenQi+blockLenPi)
+		swk.Value[i] = make([]*ring.Poly, blockLen)
 
-		for j := 0; j < blockLenQi+blockLenPi; j++ {
-			swk.Value[i][j] = params.RingR().NewPoly()
+		for j := 0; j < blockLen; j++ {
+			swk.Value[i][j] = params.RingT().NewPoly()
 		}
 	}
 
