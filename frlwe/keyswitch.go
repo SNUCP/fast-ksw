@@ -202,11 +202,17 @@ func (ksw *KeySwitcher) SwitchKey(levelQ int, a *ring.Poly, bg0, bg1 *SwitchingK
 		for i := 0; i < alpha; i++ {
 			if j*alpha+i < levelQ+1 {
 				levelQj++
-				copy(ksw.polyQPool.Coeffs[j], a.Coeffs[i*alpha+j])
+				copy(ksw.polyQPool.Coeffs[i], a.Coeffs[j*alpha+i])
 			}
 		}
 
-		ksw.convQjT[j].ModUpQtoP(levelQj, levelT, ksw.polyQPool, ksw.polyTPools1[j])
+		if alpha == 1 {
+			for i := 0; i < levelT+1; i++ {
+				copy(ksw.polyTPools1[j].Coeffs[i], ksw.polyQPool.Coeffs[0])
+			}
+		} else {
+			ksw.convQjT[j].ModUpQtoP(levelQj, levelT, ksw.polyQPool, ksw.polyTPools1[j])
+		}
 		ringT.NTTLazy(ksw.polyTPools1[j], ksw.polyTPools1[j])
 	}
 

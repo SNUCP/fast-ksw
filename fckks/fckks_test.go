@@ -27,18 +27,18 @@ var (
 			0x1fffff360001, 0x1fffff1b0001,
 			0x1fffff060001, 0x1ffffefd0001,
 			0x1ffffef30001, 0x1ffffede0001,
-			//0x1ffffeca0001, 0x1ffffec30001,
+			0x1ffffeca0001, 0x1ffffec30001,
 		},
 
 		P: []uint64{ // 50 x 4
-			0x3ffffffd20001, 0x3ffffffb80001,
+			//0x3ffffffd20001, 0x3ffffffb80001,
 			0x3fffffed60001, //0x3fffffec80001,
 		},
 
 		T: []uint64{ // 55 x 8 bit
 			0x7fffffffba0001, 0x7fffffffaa0001,
-			0x7fffffff7e0001, 0x7fffffff380001,
-			0x7ffffffef00001, 0x7ffffffeba0001,
+			0x7fffffff7e0001, //0x7fffffff380001,
+			//0x7ffffffef00001, 0x7ffffffeba0001,
 			//0x7ffffffeac0001, 0x7ffffffe700001,
 		},
 
@@ -52,7 +52,7 @@ var (
 		Q: []uint64{ // 59 + 45 x 33
 			0x7ffffffffcc0001,
 
-			0x1fffffc20001, 0x1fffff980001,
+			//0x1fffffc20001, 0x1fffff980001,
 			0x1fffff7e0001, 0x1fffff360001,
 			0x1fffff060001, 0x1ffffede0001,
 			0x1ffffeca0001, 0x1ffffeb40001,
@@ -72,14 +72,14 @@ var (
 		},
 		P: []uint64{ // 55 x 4
 			0x7fffffffba0001, 0x7fffffffaa0001,
-			0x7fffffff7e0001, //0x7fffffff380001,
+			//0x7fffffff7e0001, 0x7fffffff380001,
 		},
 
 		T: []uint64{ // 57 x 7 bit
 			0x1fffffffffc0001, 0x1ffffffff8c0001,
 			0x1ffffffff840001, 0x1ffffffff360001,
 			0x1ffffffff0c0001, 0x1fffffffee40001,
-			0x1fffffffe840001, //0x1fffffffe6c0001,
+			0x1fffffffe840001, 0x1fffffffe6c0001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
@@ -140,7 +140,7 @@ func newTestVectors(testctx *testContext, a, b complex128) (msg *Message, cipher
 }
 
 func TestFCKKS(t *testing.T) {
-	params := NewParametersFromLiteral(PN16QP1760)
+	params := NewParametersFromLiteral(PN15QP870)
 	testctx, err := genTestParams(params)
 	if err != nil {
 		panic(err)
