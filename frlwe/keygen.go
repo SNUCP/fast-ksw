@@ -83,7 +83,7 @@ func (keygen *KeyGenerator) polyQPToPolyTs(polyQP rlwe.PolyQP, polyTs []*ring.Po
 			}
 		}
 		keygen.convRiT[i].ModUpQtoP(levelRi, levelT, keygen.polyRiPool, polyTs[i])
-
+		ringT.Reduce(polyTs[i], polyTs[i])
 		ringT.NTT(polyTs[i], polyTs[i])
 		ringT.MForm(polyTs[i], polyTs[i])
 	}

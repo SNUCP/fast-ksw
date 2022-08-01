@@ -164,8 +164,9 @@ func (ksw *KeySwitcher) externalProduct(levelQ int, aPolyTs []*ring.Poly, bg *Sw
 			}
 		}
 
-		ringT.AddNoMod(ksw.polyTPools2[i], ksw.halfTPolyT, ksw.polyTPools2[i])
+		ringT.Add(ksw.polyTPools2[i], ksw.halfTPolyT, ksw.polyTPools2[i])
 		ksw.convTRi[i].ModUpQtoP(levelT, levelRi, ksw.polyTPools2[i], ksw.polyRPool)
+		ksw.ringRi[i].ReduceLvl(levelRi, ksw.polyRPool, ksw.polyRPool)
 
 		for j := 0; j < levelRi+1; j++ {
 			if i*gamma+j < alpha {

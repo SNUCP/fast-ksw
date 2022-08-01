@@ -17,40 +17,56 @@ import (
 var (
 	PN15QP870 = ParametersLiteral{
 		LogN: 15,
-		Q: []uint64{ // 45 x 18
-			0x1fffffcf0001, 0x1fffffc20001,
-			0x1fffffbf0001, 0x1fffffb10001,
-			0x1fffff980001, 0x1fffff950001,
-			0x1fffff7e0001, 0x1fffff750001,
-			0x1fffff690001, 0x1fffff630001,
-			0x1fffff360001, 0x1fffff1b0001,
-			0x1fffff060001, 0x1ffffefd0001,
-			0x1ffffef30001, 0x1ffffede0001,
-			//0x1ffffeca0001, 0x1ffffec30001,
+		Q: []uint64{ // 40 + 35
+			0xffff340001,
+
+			0x7fff80001, 0x7ffd80001,
+			0x7ffc80001, 0x7ff9c0001,
+			0x7ff900001, 0x7ff860001,
+			0x7ff6c0001, 0x7ff300001,
+
+			0x7ff120001, 0x7fef40001,
+			0x7feea0001, 0x7fed80001,
+			0x7febe0001, 0x7feae0001,
+			0x7feac0001, 0x7fe960001,
+
+			0x7fe820001, 0x7fe780001,
+			0x7fe5a0001, 0x7fe540001,
+			0x7fe220001, //0x7fdee0001,
+			//0x7fde20001, 0x7fddc0001,
+
 		},
 
-		P: []uint64{ // 50 x 4
-			0x3ffffffd20001, 0x3ffffffb80001,
-			0x3fffffed60001, 0x3fffffec80001,
+		P: []uint64{ // 38
+
+			0x3fffe80001, 0x3fffb80001,
+			0x3fffb20001, 0x3fff900001,
+			0x3fff8e0001, 0x3fff6c0001,
+			//0x3fff300001, 0x3fff1c0001,
+			//0x3ffeda0001, 0x3ffeb20001,
+			//0x3ffea60001, 0x3ffe880001,
 		},
 
-		T: []uint64{ // 55 x 8 bit
-			0x7fffffffba0001, 0x7fffffffaa0001,
-			0x7fffffff7e0001, 0x7fffffff380001,
-			0x7ffffffef00001, 0x7ffffffeba0001,
-			0x7ffffffeac0001, 0x7ffffffe700001,
+		T: []uint64{ // 60
+			0xffffffffffc0001, 0xfffffffff840001,
+			0xfffffffff6a0001, 0xfffffffff5a0001,
+			0xfffffffff2a0001, 0xfffffffff240001,
+			0xffffffffefe0001, 0xffffffffeca0001,
+			0xffffffffe9e0001, //0xffffffffe7c0001,
+			//0xffffffffe740001, 0xffffffffe520001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
-		DefaultScale: 1 << 45,
+		DefaultScale: 1 << 35,
 		LogSlots:     14,
+		Gamma:        7,
 	}
 
 	PN16QP1760 = ParametersLiteral{
 		LogN: 16,
-		Q: []uint64{ // 45 + 35 x 48
-			//0x1fffffc20001,
-			0x1ffe3a0001,
+		Q: []uint64{ // 40 + 35 x 48
+
+			0xffff340001,
 
 			0x7fff80001, 0x7ffd80001,
 			0x7ffc80001, 0x7ff9c0001,
@@ -82,22 +98,20 @@ var (
 			//0x7fbbe0001, 0x7fb960001,
 			//0x7fb5e0001, 0x7fb580001,
 		},
-		P: []uint64{ // 37 x 4
-
-			0x1ffffe0001, 0x1ffffc0001,
-			0x1fffea0001, 0x1fffb60001,
-			//0x1fffaa0001, 0x1fff8c0001,
-			//0x1fff0c0001, 0x1ffef00001,
-			//0x1ffee20001, 0x1ffeb40001,
-			//0x1ffe660001, 0x1ffe3a0001,
-
+		P: []uint64{ // 38
+			0x3fffe80001, 0x3fffb80001,
+			0x3fffb20001, 0x3fff900001,
+			//0x3fff8e0001, 0x3fff6c0001,
+			//0x3fff300001, 0x3fff1c0001,
+			//0x3ffeda0001, 0x3ffeb20001,
+			//0x3ffea60001, 0x3ffe880001,
 		},
 
-		T: []uint64{ // 59 x 3
+		T: []uint64{ // 60
 			0xffffffffffc0001, 0xfffffffff840001,
 			0xfffffffff6a0001, 0xfffffffff5a0001,
 			0xfffffffff2a0001, 0xfffffffff240001,
-			//0xffffffffefe0001, 0xffffffffeca0001,
+			0xffffffffefe0001, //0xffffffffeca0001,
 			//0xffffffffe9e0001, 0xffffffffe7c0001,
 			//0xffffffffe740001, 0xffffffffe520001,
 		},
@@ -105,7 +119,7 @@ var (
 		Sigma:        rlwe.DefaultSigma,
 		DefaultScale: 1 << 35,
 		LogSlots:     15,
-		Gamma:        5,
+		Gamma:        6,
 	}
 )
 
@@ -212,6 +226,23 @@ func testEval(testctx *testContext, t *testing.T) {
 		}
 	})
 
+	t.Run("MulAndRelinOld", func(t *testing.T) {
+		msg1, ct0 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
+		msg2, ct1 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
+
+		ctOut := evalOld.MulRelinNew(ct0, ct1)
+
+		require.Equal(t, ctOut.Degree(), 1)
+
+		msgOut := dec.DecryptToMsgNew(ctOut)
+
+		for i := 0; i < slots; i++ {
+			delta := msg1.Value[i]*msg2.Value[i] - msgOut.Value[i]
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(real(delta))))
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(imag(delta))))
+		}
+	})
+
 	t.Run("MulAndRelin", func(t *testing.T) {
 		msg1, ct0 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
 		msg2, ct1 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
@@ -229,20 +260,4 @@ func testEval(testctx *testContext, t *testing.T) {
 		}
 	})
 
-	t.Run("MulAndRelinOld", func(t *testing.T) {
-		msg1, ct0 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
-		msg2, ct1 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
-
-		ctOut := evalOld.MulRelinNew(ct0, ct1)
-
-		require.Equal(t, ctOut.Degree(), 1)
-
-		msgOut := dec.DecryptToMsgNew(ctOut)
-
-		for i := 0; i < slots; i++ {
-			delta := msg1.Value[i]*msg2.Value[i] - msgOut.Value[i]
-			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(real(delta))))
-			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(imag(delta))))
-		}
-	})
 }
