@@ -1,9 +1,9 @@
 package fckks
 
 import (
+	"fast-ksw/ckks"
 	"fast-ksw/frlwe"
-	"github.com/tuneinsight/lattigo/v3/ckks"
-	"github.com/tuneinsight/lattigo/v3/ring"
+	"fast-ksw/ring"
 )
 
 type ParametersLiteral struct {

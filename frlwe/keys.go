@@ -1,7 +1,7 @@
 package frlwe
 
 import (
-	"github.com/tuneinsight/lattigo/v3/ring"
+	"fast-ksw/ring"
 	"math"
 )
 

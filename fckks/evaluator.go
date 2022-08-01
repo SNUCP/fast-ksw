@@ -1,11 +1,11 @@
 package fckks
 
 import (
+	"fast-ksw/ckks"
 	"fast-ksw/frlwe"
-	"github.com/tuneinsight/lattigo/v3/ckks"
-	"github.com/tuneinsight/lattigo/v3/ring"
-	"github.com/tuneinsight/lattigo/v3/rlwe"
-	"github.com/tuneinsight/lattigo/v3/utils"
+	"fast-ksw/ring"
+	"fast-ksw/rlwe"
+	"fast-ksw/utils"
 )
 
 type Evaluator struct {

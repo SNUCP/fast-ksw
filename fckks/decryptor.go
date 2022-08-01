@@ -1,8 +1,8 @@
 package fckks
 
 import (
-	"github.com/tuneinsight/lattigo/v3/ckks"
-	"github.com/tuneinsight/lattigo/v3/rlwe"
+	"fast-ksw/ckks"
+	"fast-ksw/rlwe"
 )
 
 type Decryptor struct {

@@ -6,9 +6,9 @@ import (
 	"math/bits"
 	"testing"
 
-	"github.com/tuneinsight/lattigo/v3/ring"
-	"github.com/tuneinsight/lattigo/v3/rlwe"
-	"github.com/tuneinsight/lattigo/v3/utils"
+	"fast-ksw/ring"
+	"fast-ksw/rlwe"
+	"fast-ksw/utils"
 
 	"github.com/stretchr/testify/require"
 )

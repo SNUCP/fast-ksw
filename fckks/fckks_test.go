@@ -6,11 +6,10 @@ import (
 
 	"fast-ksw/frlwe"
 
-	"github.com/tuneinsight/lattigo/v3/ring"
-	"github.com/tuneinsight/lattigo/v3/rlwe"
-	"github.com/tuneinsight/lattigo/v3/utils"
-
-	"github.com/tuneinsight/lattigo/v3/ckks"
+	"fast-ksw/ckks"
+	"fast-ksw/ring"
+	"fast-ksw/rlwe"
+	"fast-ksw/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -27,19 +26,19 @@ var (
 			0x1fffff360001, 0x1fffff1b0001,
 			0x1fffff060001, 0x1ffffefd0001,
 			0x1ffffef30001, 0x1ffffede0001,
-			0x1ffffeca0001, 0x1ffffec30001,
+			//0x1ffffeca0001, 0x1ffffec30001,
 		},
 
 		P: []uint64{ // 50 x 4
-			//0x3ffffffd20001, 0x3ffffffb80001,
-			0x3fffffed60001, //0x3fffffec80001,
+			0x3ffffffd20001, 0x3ffffffb80001,
+			0x3fffffed60001, 0x3fffffec80001,
 		},
 
 		T: []uint64{ // 55 x 8 bit
 			0x7fffffffba0001, 0x7fffffffaa0001,
-			0x7fffffff7e0001, //0x7fffffff380001,
-			//0x7ffffffef00001, 0x7ffffffeba0001,
-			//0x7ffffffeac0001, 0x7ffffffe700001,
+			0x7fffffff7e0001, 0x7fffffff380001,
+			0x7ffffffef00001, 0x7ffffffeba0001,
+			0x7ffffffeac0001, 0x7ffffffe700001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
@@ -49,41 +48,49 @@ var (
 
 	PN16QP1760 = ParametersLiteral{
 		LogN: 16,
-		Q: []uint64{ // 59 + 45 x 33
+		Q: []uint64{ // 59 + 43 x 33
 			0x7ffffffffcc0001,
 
-			//0x1fffffc20001, 0x1fffff980001,
-			0x1fffff7e0001, 0x1fffff360001,
-			0x1fffff060001, 0x1ffffede0001,
-			0x1ffffeca0001, 0x1ffffeb40001,
-			0x1ffffe760001, 0x1ffffe640001,
-			0x1ffffe520001, 0x1ffffe0c0001,
-			0x1ffffdee0001, 0x1ffffdb60001,
-			0x1ffffd800001, 0x1ffffd760001,
-			0x1ffffd700001, 0x1ffffd160001,
-			0x1ffffcf00001, 0x1ffffcc80001,
-			0x1ffffcb40001, 0x1ffffc980001,
-			0x1ffffc6e0001, 0x1ffffc200001,
-			0x1ffffc140001, 0x1ffffbe20001,
-			0x1ffffbc40001, 0x1ffffbbe0001,
-			0x1ffffb9a0001, 0x1ffffb900001,
-			0x1ffffb7e0001, 0x1ffffb5e0001,
-			0x1ffffb240001,
+			0x7ffffd20001, 0x7ffffaa0001,
+			0x7ffffa80001, 0x7ffff8c0001,
+			0x7ffff620001, 0x7ffff380001,
+			0x7ffff360001, 0x7ffff260001,
+			0x7fffe7c0001, 0x7fffe660001,
+			0x7fffe600001, 0x7fffe460001,
+			0x7fffe1e0001, 0x7fffde60001,
+			0x7fffdd00001, 0x7fffd740001,
+			0x7fffd6e0001, 0x7fffd5c0001,
+			0x7fffd520001, 0x7fffd2e0001,
+			0x7fffd200001, 0x7fffd140001,
+			0x7fffcc20001, 0x7fffca40001,
+			0x7fffc980001, 0x7fffc680001,
+			0x7fffc620001, 0x7fffc600001,
+			0x7fffc480001, 0x7fffc380001,
+			0x7fffc300001, 0x7fffc1a0001,
+			0x7fffc180001, 0x7fffbf40001,
+			0x7fffbd00001,
 		},
-		P: []uint64{ // 55 x 4
-			0x7fffffffba0001, 0x7fffffffaa0001,
-			//0x7fffffff7e0001, 0x7fffffff380001,
+		P: []uint64{ // 45 x 6
+			0x1fffffc20001, 0x1fffff980001,
+			0x1fffff7e0001, 0x1fffff360001,
+			//0x1fffff060001, 0x1ffffede0001,
 		},
 
-		T: []uint64{ // 57 x 7 bit
-			0x1fffffffffc0001, 0x1ffffffff8c0001,
-			0x1ffffffff840001, 0x1ffffffff360001,
-			0x1ffffffff0c0001, 0x1fffffffee40001,
-			0x1fffffffe840001, 0x1fffffffe6c0001,
+		T: []uint64{ // 50 x 12
+			0x3ffffffd20001, 0x3ffffffb80001,
+			0x3fffffed60001, 0x3fffffec80001,
+			0x3fffffebe0001, 0x3fffffea60001,
+			0x3fffffea40001, 0x3fffffe9e0001,
+			0x3fffffe9a0001, 0x3fffffe940001,
+			//0x3fffffe620001, 0x3fffffe460001,
+			//0x3fffffdd40001, 0x3fffffdce0001,
+			//0x3fffffd900001, 0x3fffffd7a0001,
+			//0x3fffffd540001, 0x3fffffd500001,
+			//0x3fffffd2a0001, 0x3fffffcc40001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
-		DefaultScale: 1 << 50,
+		DefaultScale: 1 << 43,
 		LogSlots:     15,
 	}
 )
@@ -140,7 +147,7 @@ func newTestVectors(testctx *testContext, a, b complex128) (msg *Message, cipher
 }
 
 func TestFCKKS(t *testing.T) {
-	params := NewParametersFromLiteral(PN15QP870)
+	params := NewParametersFromLiteral(PN16QP1760)
 	testctx, err := genTestParams(params)
 	if err != nil {
 		panic(err)
