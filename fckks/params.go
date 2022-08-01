@@ -17,6 +17,7 @@ type ParametersLiteral struct {
 	LogSlots     int
 	DefaultScale float64
 	H            int
+	Gamma        int
 }
 
 type Parameters struct {
@@ -53,6 +54,7 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 			LogP:  pl.LogP,
 			H:     pl.H,
 			Sigma: pl.Sigma,
+			Gamma: pl.Gamma,
 		})
 
 	params.Parameters = ckksParams

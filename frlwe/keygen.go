@@ -65,6 +65,7 @@ func (keygen *KeyGenerator) polyQPToPolyTs(polyQP rlwe.PolyQP, polyTs []*ring.Po
 	gamma := params.Gamma()
 
 	ringT := params.RingT()
+	levelT := len(ringT.Modulus) - 1
 
 	coeffsQ := polyQP.Q.GetCoefficients()
 	coeffsP := polyQP.P.GetCoefficients()
@@ -81,7 +82,7 @@ func (keygen *KeyGenerator) polyQPToPolyTs(polyQP rlwe.PolyQP, polyTs []*ring.Po
 				copy(keygen.polyRiPool.Coeffs[j], coeffsQ[i*gamma+j-alpha])
 			}
 		}
-		keygen.convRiT[i].ModUpQtoP(levelRi, gamma+alpha-1, keygen.polyRiPool, polyTs[i])
+		keygen.convRiT[i].ModUpQtoP(levelRi, levelT, keygen.polyRiPool, polyTs[i])
 
 		ringT.NTT(polyTs[i], polyTs[i])
 		ringT.MForm(polyTs[i], polyTs[i])

@@ -48,50 +48,64 @@ var (
 
 	PN16QP1760 = ParametersLiteral{
 		LogN: 16,
-		Q: []uint64{ // 59 + 43 x 33
-			0x7ffffffffcc0001,
+		Q: []uint64{ // 45 + 35 x 48
+			//0x1fffffc20001,
+			0x1ffe3a0001,
 
-			0x7ffffd20001, 0x7ffffaa0001,
-			0x7ffffa80001, 0x7ffff8c0001,
-			0x7ffff620001, 0x7ffff380001,
-			0x7ffff360001, 0x7ffff260001,
-			0x7fffe7c0001, 0x7fffe660001,
-			0x7fffe600001, 0x7fffe460001,
-			0x7fffe1e0001, 0x7fffde60001,
-			0x7fffdd00001, 0x7fffd740001,
-			0x7fffd6e0001, 0x7fffd5c0001,
-			0x7fffd520001, 0x7fffd2e0001,
-			0x7fffd200001, 0x7fffd140001,
-			0x7fffcc20001, 0x7fffca40001,
-			0x7fffc980001, 0x7fffc680001,
-			0x7fffc620001, 0x7fffc600001,
-			0x7fffc480001, 0x7fffc380001,
-			0x7fffc300001, 0x7fffc1a0001,
-			0x7fffc180001, 0x7fffbf40001,
-			0x7fffbd00001,
+			0x7fff80001, 0x7ffd80001,
+			0x7ffc80001, 0x7ff9c0001,
+			0x7ff900001, 0x7ff860001,
+			0x7ff6c0001, 0x7ff300001,
+
+			0x7ff120001, 0x7fef40001,
+			0x7feea0001, 0x7fed80001,
+			0x7febe0001, 0x7feae0001,
+			0x7feac0001, 0x7fe960001,
+
+			0x7fe820001, 0x7fe780001,
+			0x7fe5a0001, 0x7fe540001,
+			0x7fe220001, 0x7fdee0001,
+			0x7fde20001, 0x7fddc0001,
+
+			0x7fdc80001, 0x7fd8e0001,
+			0x7fd6e0001, 0x7fd580001,
+			0x7fd520001, 0x7fd3a0001,
+			0x7fcf20001, 0x7fce40001,
+
+			0x7fcd40001, 0x7fccc0001,
+			0x7fcc20001, 0x7fcae0001,
+			0x7fca80001, 0x7fc8a0001,
+			0x7fc680001, 0x7fc620001,
+
+			0x7fc600001, 0x7fc060001,
+			0x7fbe40001, 0x7fbde0001,
+			//0x7fbbe0001, 0x7fb960001,
+			//0x7fb5e0001, 0x7fb580001,
 		},
-		P: []uint64{ // 45 x 6
-			0x1fffffc20001, 0x1fffff980001,
-			0x1fffff7e0001, 0x1fffff360001,
-			//0x1fffff060001, 0x1ffffede0001,
+		P: []uint64{ // 37 x 4
+
+			0x1ffffe0001, 0x1ffffc0001,
+			0x1fffea0001, 0x1fffb60001,
+			//0x1fffaa0001, 0x1fff8c0001,
+			//0x1fff0c0001, 0x1ffef00001,
+			//0x1ffee20001, 0x1ffeb40001,
+			//0x1ffe660001, 0x1ffe3a0001,
+
 		},
 
-		T: []uint64{ // 50 x 12
-			0x3ffffffd20001, 0x3ffffffb80001,
-			0x3fffffed60001, 0x3fffffec80001,
-			0x3fffffebe0001, 0x3fffffea60001,
-			0x3fffffea40001, 0x3fffffe9e0001,
-			0x3fffffe9a0001, 0x3fffffe940001,
-			//0x3fffffe620001, 0x3fffffe460001,
-			//0x3fffffdd40001, 0x3fffffdce0001,
-			//0x3fffffd900001, 0x3fffffd7a0001,
-			//0x3fffffd540001, 0x3fffffd500001,
-			//0x3fffffd2a0001, 0x3fffffcc40001,
+		T: []uint64{ // 59 x 3
+			0xffffffffffc0001, 0xfffffffff840001,
+			0xfffffffff6a0001, 0xfffffffff5a0001,
+			0xfffffffff2a0001, 0xfffffffff240001,
+			//0xffffffffefe0001, 0xffffffffeca0001,
+			//0xffffffffe9e0001, 0xffffffffe7c0001,
+			//0xffffffffe740001, 0xffffffffe520001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
-		DefaultScale: 1 << 43,
+		DefaultScale: 1 << 35,
 		LogSlots:     15,
+		Gamma:        5,
 	}
 )
 

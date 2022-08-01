@@ -4,6 +4,5 @@ go 1.13
 
 require (
 	github.com/stretchr/testify v1.7.1
-	github.com/tuneinsight/lattigo/v3 v3.0.5
 	golang.org/x/crypto v0.0.0-20220331220935-ae2d96664a29
 )

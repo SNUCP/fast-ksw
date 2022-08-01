@@ -16,10 +16,14 @@ type ParametersLiteral struct {
 	LogP  []int `json:",omitempty"`
 	Sigma float64
 	H     int
+	Gamma int
 }
 
 type Parameters struct {
 	rlwe.Parameters
+
+	gamma int
+
 	ringR *ring.Ring
 	ringT *ring.Ring
 }
@@ -49,6 +53,7 @@ func NewParametersFromLiteral(pl ParametersLiteral) (params Parameters) {
 	params.Parameters = rlweParams
 	params.ringT = ringT
 	params.ringR = ringR
+	params.gamma = pl.Gamma
 
 	return
 }
@@ -66,5 +71,5 @@ func (p Parameters) TiOverflowMargin(level int) int {
 }
 
 func (p Parameters) Gamma() int {
-	return len(p.ringT.Modulus) - p.Alpha()
+	return p.gamma
 }
