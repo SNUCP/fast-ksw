@@ -30,21 +30,24 @@ var (
 			0x7febe0001, 0x7feae0001,
 			0x7feac0001, 0x7fe960001,
 
-			0x7fe820001, 0x7fe780001,
-			0x7fe5a0001, 0x7fe540001,
-			0x7fe220001, //0x7fdee0001,
+			//0x7fe820001, 0x7fe780001,
+			//0x7fe5a0001, 0x7fe540001,
+			//0x7fe220001, 0x7fdee0001,
 			//0x7fde20001, 0x7fddc0001,
 
 		},
 
-		P: []uint64{ // 38
+		P: []uint64{ // 36
 
-			0x3fffe80001, 0x3fffb80001,
-			0x3fffb20001, 0x3fff900001,
-			0x3fff8e0001, 0x3fff6c0001,
-			//0x3fff300001, 0x3fff1c0001,
-			//0x3ffeda0001, 0x3ffeb20001,
-			//0x3ffea60001, 0x3ffe880001,
+			0xffff00001, 0xfff9c0001,
+			0xfff8e0001, 0xfff840001,
+			0xfff700001, 0xfff640001,
+			0xfff4c0001, 0xfff3c0001,
+
+			//0xfff280001, 0xfff100001,
+			//0xffefe0001, 0xffee80001,
+			//0xffee20001, 0xffeda0001,
+			//0xffeca0001, 0xffea40001,
 		},
 
 		T: []uint64{ // 60
@@ -52,7 +55,7 @@ var (
 			0xfffffffff6a0001, 0xfffffffff5a0001,
 			0xfffffffff2a0001, 0xfffffffff240001,
 			0xffffffffefe0001, 0xffffffffeca0001,
-			0xffffffffe9e0001, //0xffffffffe7c0001,
+			0xffffffffe9e0001, 0xffffffffe7c0001,
 			//0xffffffffe740001, 0xffffffffe520001,
 		},
 
@@ -60,6 +63,8 @@ var (
 		DefaultScale: 1 << 35,
 		LogSlots:     14,
 		Gamma:        7,
+		//1:3:3  2:4:4  4:5:6  6:6:8  8:8:10
+
 	}
 
 	PN16QP1760 = ParametersLiteral{
@@ -93,33 +98,45 @@ var (
 			0x7fca80001, 0x7fc8a0001,
 			0x7fc680001, 0x7fc620001,
 
-			0x7fc600001, 0x7fc060001,
-			0x7fbe40001, 0x7fbde0001,
+			//0x7fc600001, 0x7fc060001,
+			//0x7fbe40001, 0x7fbde0001,
 			//0x7fbbe0001, 0x7fb960001,
 			//0x7fb5e0001, 0x7fb580001,
 		},
-		P: []uint64{ // 38
-			0x3fffe80001, 0x3fffb80001,
-			0x3fffb20001, 0x3fff900001,
-			//0x3fff8e0001, 0x3fff6c0001,
-			//0x3fff300001, 0x3fff1c0001,
-			//0x3ffeda0001, 0x3ffeb20001,
-			//0x3ffea60001, 0x3ffe880001,
+		P: []uint64{ // 36
+
+			0xffff00001, 0xfff9c0001,
+			0xfff8e0001, 0xfff840001,
+			0xfff700001, 0xfff640001,
+			0xfff4c0001, 0xfff3c0001,
+
+			//0xfff280001, 0xfff100001,
+			//0xffefe0001, 0xffee80001,
+			//0xffee20001, 0xffeda0001,
+			//0xffeca0001, 0xffea40001,
+
 		},
 
 		T: []uint64{ // 60
 			0xffffffffffc0001, 0xfffffffff840001,
 			0xfffffffff6a0001, 0xfffffffff5a0001,
 			0xfffffffff2a0001, 0xfffffffff240001,
-			0xffffffffefe0001, //0xffffffffeca0001,
-			//0xffffffffe9e0001, 0xffffffffe7c0001,
+			0xffffffffefe0001, 0xffffffffeca0001,
+
+			0xffffffffe9e0001, 0xffffffffe7c0001,
 			//0xffffffffe740001, 0xffffffffe520001,
+			//0xffffffffe4c0001, 0xffffffffe440001,
+			//0xffffffffe400001, 0xffffffffdda0001,
+
+			//0xffffffffdd20001, 0xffffffffdbc0001,
+			//0xffffffffdb60001, 0xffffffffd8a0001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
 		DefaultScale: 1 << 35,
 		LogSlots:     15,
-		Gamma:        6,
+		Gamma:        9,
+		// 1:3:3 2:4:4 4:5:6 6:7:9 8:8:10 10:9:12
 	}
 )
 
@@ -175,14 +192,14 @@ func newTestVectors(testctx *testContext, a, b complex128) (msg *Message, cipher
 }
 
 func TestFCKKS(t *testing.T) {
-	params := NewParametersFromLiteral(PN16QP1760)
+	params := NewParametersFromLiteral(PN15QP870)
 	testctx, err := genTestParams(params)
 	if err != nil {
 		panic(err)
 	}
 
 	testEncrypt(testctx, t)
-	testEval(testctx, t)
+	//testEval(testctx, t)
 }
 
 func testEncrypt(testctx *testContext, t *testing.T) {
