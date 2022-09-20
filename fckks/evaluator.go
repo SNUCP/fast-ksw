@@ -67,3 +67,23 @@ func (eval *Evaluator) MulRelin(ct0, ct1 *ckks.Ciphertext, rlk *frlwe.RelinKey, 
 
 	ctOut.Value = ctOut.Value[:2]
 }
+
+func (eval *Evaluator) SwitchKeys(ct0 *ckks.Ciphertext, swk [2]*frlwe.SwitchingKey, ctOut *ckks.Ciphertext) {
+
+	level := utils.MinInt(ct0.Level(), ctOut.Level())
+	ringQ := eval.params.RingQ()
+
+	ctOut.Scale = ct0.Scale
+
+	//ringQ.InvNTTLvl(level, ct0.Value[1], eval.polyQPool[0])
+	eval.ksw.SwitchKey(level, ct0.Value[1], swk[0], swk[1], eval.polyQPool[1], eval.polyQPool[2])
+
+	ringQ.AddLvl(level, ct0.Value[0], eval.polyQPool[1], ctOut.Value[0])
+	ring.CopyValuesLvl(level, eval.polyQPool[2], ctOut.Value[1])
+}
+
+func (eval *Evaluator) SwitchKeysNew(ct0 *ckks.Ciphertext, swk [2]*frlwe.SwitchingKey) (ctOut *ckks.Ciphertext) {
+	ctOut = ckks.NewCiphertext(eval.params.Parameters, ct0.Degree(), ct0.Level(), ct0.Scale)
+	eval.SwitchKeys(ct0, swk, ctOut)
+	return
+}

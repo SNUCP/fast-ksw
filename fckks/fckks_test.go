@@ -30,19 +30,19 @@ var (
 			0x7febe0001, 0x7feae0001,
 			0x7feac0001, 0x7fe960001,
 
-			//0x7fe820001, 0x7fe780001,
-			//0x7fe5a0001, 0x7fe540001,
-			//0x7fe220001, 0x7fdee0001,
-			//0x7fde20001, 0x7fddc0001,
+			0x7fe820001, 0x7fe780001,
+			0x7fe5a0001, 0x7fe540001,
+			0x7fe220001, 0x7fdee0001,
+			0x7fde20001, //0x7fddc0001,
 
 		},
 
 		P: []uint64{ // 36
 
-			0xffff00001, 0xfff9c0001,
-			0xfff8e0001, 0xfff840001,
-			0xfff700001, 0xfff640001,
-			0xfff4c0001, 0xfff3c0001,
+			0xffff00001, //0xfff9c0001,
+			//0xfff8e0001, 0xfff840001,
+			//0xfff700001, 0xfff640001,
+			//0xfff4c0001, 0xfff3c0001,
 
 			//0xfff280001, 0xfff100001,
 			//0xffefe0001, 0xffee80001,
@@ -52,17 +52,17 @@ var (
 
 		T: []uint64{ // 60
 			0xffffffffffc0001, 0xfffffffff840001,
-			0xfffffffff6a0001, 0xfffffffff5a0001,
-			0xfffffffff2a0001, 0xfffffffff240001,
-			0xffffffffefe0001, 0xffffffffeca0001,
-			0xffffffffe9e0001, 0xffffffffe7c0001,
+			0xfffffffff6a0001, //0xfffffffff5a0001,
+			//0xfffffffff2a0001, 0xfffffffff240001,
+			//0xffffffffefe0001, 0xffffffffeca0001,
+			//0xffffffffe9e0001, 0xffffffffe7c0001,
 			//0xffffffffe740001, 0xffffffffe520001,
 		},
 
 		Sigma:        rlwe.DefaultSigma,
 		DefaultScale: 1 << 35,
 		LogSlots:     14,
-		Gamma:        7,
+		Gamma:        3,
 		//1:3:3  2:4:4  4:5:6  6:6:8  8:8:10
 
 	}
@@ -98,17 +98,17 @@ var (
 			0x7fca80001, 0x7fc8a0001,
 			0x7fc680001, 0x7fc620001,
 
-			//0x7fc600001, 0x7fc060001,
-			//0x7fbe40001, 0x7fbde0001,
-			//0x7fbbe0001, 0x7fb960001,
-			//0x7fb5e0001, 0x7fb580001,
+			0x7fc600001, 0x7fc060001,
+			0x7fbe40001, 0x7fbde0001,
+			0x7fbbe0001, 0x7fb960001,
+			0x7fb5e0001, //0x7fb580001,
 		},
 		P: []uint64{ // 36
 
-			0xffff00001, 0xfff9c0001,
-			0xfff8e0001, 0xfff840001,
-			0xfff700001, 0xfff640001,
-			0xfff4c0001, 0xfff3c0001,
+			0xffff00001, //0xfff9c0001,
+			//0xfff8e0001, 0xfff840001,
+			//0xfff700001, 0xfff640001,
+			//0xfff4c0001, 0xfff3c0001,
 
 			//0xfff280001, 0xfff100001,
 			//0xffefe0001, 0xffee80001,
@@ -119,11 +119,11 @@ var (
 
 		T: []uint64{ // 60
 			0xffffffffffc0001, 0xfffffffff840001,
-			0xfffffffff6a0001, 0xfffffffff5a0001,
-			0xfffffffff2a0001, 0xfffffffff240001,
-			0xffffffffefe0001, 0xffffffffeca0001,
+			0xfffffffff6a0001, //0xfffffffff5a0001,
+			//0xfffffffff2a0001, 0xfffffffff240001,
+			//0xffffffffefe0001, 0xffffffffeca0001,
 
-			0xffffffffe9e0001, 0xffffffffe7c0001,
+			//0xffffffffe9e0001, 0xffffffffe7c0001,
 			//0xffffffffe740001, 0xffffffffe520001,
 			//0xffffffffe4c0001, 0xffffffffe440001,
 			//0xffffffffe400001, 0xffffffffdda0001,
@@ -135,7 +135,7 @@ var (
 		Sigma:        rlwe.DefaultSigma,
 		DefaultScale: 1 << 35,
 		LogSlots:     15,
-		Gamma:        9,
+		Gamma:        3,
 		// 1:3:3 2:4:4 4:5:6 6:7:9 8:8:10 10:9:12
 	}
 )
