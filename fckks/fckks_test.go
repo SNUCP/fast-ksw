@@ -101,7 +101,7 @@ var (
 			0x7fc600001, 0x7fc060001,
 			0x7fbe40001, 0x7fbde0001,
 			0x7fbbe0001, 0x7fb960001,
-			0x7fb5e0001, //0x7fb580001,
+			//0x7fb5e0001, 0x7fb580001,
 		},
 		P: []uint64{ // 36
 
@@ -119,7 +119,7 @@ var (
 
 		T: []uint64{ // 60
 			0xffffffffffc0001, 0xfffffffff840001,
-			0xfffffffff6a0001, //0xfffffffff5a0001,
+			0xfffffffff6a0001, 0xfffffffff5a0001,
 			//0xfffffffff2a0001, 0xfffffffff240001,
 			//0xffffffffefe0001, 0xffffffffeca0001,
 
@@ -135,7 +135,7 @@ var (
 		Sigma:        rlwe.DefaultSigma,
 		DefaultScale: 1 << 35,
 		LogSlots:     15,
-		Gamma:        3,
+		Gamma:        5,
 		// 1:3:3 2:4:4 4:5:6 6:7:9 8:8:10 10:9:12
 	}
 )
@@ -160,7 +160,7 @@ func genTestParams(params Parameters) (testctx *testContext, err error) {
 
 	testctx.ringQ = params.RingQ()
 
-	testctx.kgen = frlwe.NewKeyGenerator(testctx.params.frlweParams)
+	testctx.kgen = NewKeyGenerator(testctx.params)
 
 	testctx.sk, testctx.pk = testctx.kgen.GenKeyPair()
 	testctx.rlk = testctx.kgen.GenRelinKey(testctx.sk)
@@ -199,7 +199,7 @@ func TestFCKKS(t *testing.T) {
 	}
 
 	testEncrypt(testctx, t)
-	//testEval(testctx, t)
+	testEval(testctx, t)
 }
 
 func testEncrypt(testctx *testContext, t *testing.T) {

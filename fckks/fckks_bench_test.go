@@ -5,14 +5,14 @@ import (
 )
 
 func BenchmarkFCKKS(b *testing.B) {
-	params := NewParametersFromLiteral(PN15QP870)
+	params := NewParametersFromLiteral(PN16QP1760)
 	testctx, err := genTestParams(params)
 	if err != nil {
 		panic(err)
 	}
 
-	//benchMulOld(testctx, b)
-	//benchMulNew(testctx, b)
+	benchMulOld(testctx, b)
+	benchMulNew(testctx, b)
 
 	benchKeySwtichOld(testctx, b)
 	benchKeySwitchNew(testctx, b)
