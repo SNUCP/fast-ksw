@@ -1170,8 +1170,13 @@ func (eval *evaluator) mulRelin(op0, op1 Operand, relin bool, ctOut *Ciphertext)
 		}
 
 		if relin {
-			c2.IsNTT = true
+			c2.IsNTT = false
+			eval.RingQ().InvNTTLvl(level, c2, c2)
 			eval.SwitchKeysInPlace(level, c2, eval.rlk.Keys[0], eval.Pool[1].Q, eval.Pool[2].Q)
+
+			ringQ.NTTLazyLvl(level, eval.Pool[1].Q, eval.Pool[1].Q)
+			ringQ.NTTLazyLvl(level, eval.Pool[2].Q, eval.Pool[2].Q)
+
 			ringQ.AddLvl(level, c0, eval.Pool[1].Q, ctOut.Value[0])
 			ringQ.AddLvl(level, c1, eval.Pool[2].Q, ctOut.Value[1])
 		}
