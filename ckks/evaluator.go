@@ -73,6 +73,11 @@ type Evaluator interface {
 	MulAndAdd(op0, op1 Operand, ctOut *Ciphertext)
 	MulRelinAndAdd(op0, op1 Operand, ctOut *Ciphertext)
 
+	// Rotate
+
+	Rotate(ct0 *Ciphertext, k int, ctOut *Ciphertext)
+	RotateNew(ct0 *Ciphertext, k int) (ctOut *Ciphertext)
+
 	// =============================
 	// === Ciphertext Management ===
 	// =============================
@@ -1433,17 +1438,21 @@ func (eval *evaluator) permuteNTT(ct0 *Ciphertext, galEl uint64, ctOut *Cipherte
 	}
 
 	level := utils.MinInt(ct0.Level(), ctOut.Level())
-	index := eval.permuteNTTIndex[galEl]
 	pool2Q := eval.Pool[1].Q
 	pool3Q := eval.Pool[2].Q
 	ringQ := eval.params.RingQ()
 
-	eval.SwitchKeysInPlace(level, ct0.Value[1], rtk, pool2Q, pool3Q)
+	ringQ.InvNTTLvl(level, ct0.Value[1], pool2Q)
+	pool2Q.IsNTT = false
+	eval.SwitchKeysInPlace(level, pool2Q, rtk, ctOut.Value[0], ctOut.Value[1])
 
-	eval.params.RingQ().AddLvl(level, pool2Q, ct0.Value[0], pool2Q)
+	ringQ.NTTLvl(level, ctOut.Value[0], pool2Q)
+	ringQ.NTTLvl(level, ctOut.Value[1], pool3Q)
 
-	ringQ.PermuteNTTWithIndexLvl(level, pool2Q, index, ctOut.Value[0])
-	ringQ.PermuteNTTWithIndexLvl(level, pool3Q, index, ctOut.Value[1])
+	ringQ.AddLvl(level, pool2Q, ct0.Value[0], pool2Q)
+
+	ringQ.PermuteNTTLvl(level, pool2Q, galEl, ctOut.Value[0])
+	ringQ.PermuteNTTLvl(level, pool3Q, galEl, ctOut.Value[1])
 }
 
 func (eval *evaluator) RotateHoistedNoModDownNew(level int, rotations []int, c0 *ring.Poly, c2DecompQP []rlwe.PolyQP) (cOut map[int][2]rlwe.PolyQP) {

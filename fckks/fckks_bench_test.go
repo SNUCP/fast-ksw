@@ -19,6 +19,9 @@ func BenchmarkFCKKS(b *testing.B) {
 		benchMulOld(testctx, b)
 		benchMulNew(testctx, b)
 
+		benchRotNew(testctx, b)
+		benchRotOld(testctx, b)
+
 		benchKeySwtichOld(testctx, b)
 		benchKeySwitchNew(testctx, b)
 	}
@@ -36,6 +39,32 @@ func benchMulNew(testctx *testContext, b *testing.B) {
 			eval.MulRelinNew(ct0, ct1, rlk)
 		}
 
+	})
+}
+
+func benchRotNew(testctx *testContext, b *testing.B) {
+	eval := testctx.eval
+	rtk := testctx.rtk
+
+	_, ct0 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
+
+	b.Run(fmt.Sprintf("RotateNew logN:%d logQP:%d", testctx.params.LogN(), testctx.params.LogQP()), func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			eval.RotateNew(ct0, rtk)
+		}
+
+	})
+}
+
+func benchRotOld(testctx *testContext, b *testing.B) {
+	eval := testctx.evalOld
+
+	_, ct0 := newTestVectors(testctx, complex(-1, -1), complex(1, 1))
+
+	b.Run(fmt.Sprintf("RotateOld logN:%d logQP:%d", testctx.params.LogN(), testctx.params.LogQP()), func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			eval.RotateNew(ct0, 1)
+		}
 	})
 }
 

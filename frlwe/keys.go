@@ -13,6 +13,11 @@ type RelinKey struct {
 	Value [2]*SwitchingKey
 }
 
+type RotationKey struct {
+	Value  [2]*SwitchingKey
+	Rotidx uint64
+}
+
 func NewSwitchingKey(params Parameters) *SwitchingKey {
 
 	level := params.MaxLevel()
@@ -43,4 +48,14 @@ func NewRelinKey(params Parameters) *RelinKey {
 	rlk.Value[1] = NewSwitchingKey(params)
 
 	return rlk
+}
+
+func NewRotationKey(params Parameters, rotidx uint64) *RotationKey {
+
+	rtk := new(RotationKey)
+	rtk.Value[0] = NewSwitchingKey(params)
+	rtk.Value[1] = NewSwitchingKey(params)
+	rtk.Rotidx = rotidx
+
+	return rtk
 }

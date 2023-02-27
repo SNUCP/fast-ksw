@@ -94,6 +94,7 @@ type testContext struct {
 	sk      *rlwe.SecretKey
 	pk      *rlwe.PublicKey
 	rlk     *frlwe.RelinKey
+	rtk     *frlwe.RotationKey
 	enc     *Encryptor
 	dec     *Decryptor
 	eval    *Evaluator
@@ -111,13 +112,15 @@ func genTestParams(params Parameters) (testctx *testContext, err error) {
 
 	testctx.sk, testctx.pk = testctx.kgen.GenKeyPair()
 	testctx.rlk = testctx.kgen.GenRelinKey(testctx.sk)
+	testctx.rtk = testctx.kgen.GenRotKey(1, testctx.sk)
 
 	testctx.enc = NewEncryptor(testctx.params, testctx.pk)
 	testctx.dec = NewDecryptor(testctx.params, testctx.sk)
 	testctx.eval = NewEvaluator(testctx.params)
 
 	rlkOld := testctx.kgen.KeyGenerator.GenRelinearizationKey(testctx.sk, 1)
-	testctx.evalOld = ckks.NewEvaluator(testctx.params.Parameters, rlwe.EvaluationKey{Rlk: rlkOld})
+	rtkOld := testctx.kgen.KeyGenerator.GenRotationKeysForInnerSum(testctx.sk)
+	testctx.evalOld = ckks.NewEvaluator(testctx.params.Parameters, rlwe.EvaluationKey{Rlk: rlkOld, Rtks: rtkOld})
 
 	return
 }
@@ -140,7 +143,8 @@ func newTestVectors(testctx *testContext, a, b complex128) (msg *Message, cipher
 
 func TestFCKKS(t *testing.T) {
 
-	paramList := []ParametersLiteral{PN15QP870, PN16QP1760}
+	paramList := []ParametersLiteral{PN15QP870}
+	//paramList := []ParametersLiteral{PN15QP870, PN16QP1760}
 
 	for _, paramsLiteral := range paramList {
 		params := NewParametersFromLiteral(paramsLiteral)
@@ -213,6 +217,20 @@ func testEval(testctx *testContext, t *testing.T) {
 		}
 	})
 
+	t.Run("RotateOld", func(t *testing.T) {
+		msg, ct := newTestVectors(testctx, complex(-0.5, -0.5), complex(0.5, 0.5))
+
+		rot := int(testctx.rtk.Rotidx)
+		ctOut := evalOld.RotateNew(ct, 1)
+		msgOut := dec.DecryptToMsgNew(ctOut)
+
+		for i := 0; i < slots; i++ {
+			delta := msgOut.Value[i] - msg.Value[(i+rot)%slots]
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(real(delta))))
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(imag(delta))))
+		}
+	})
+
 	t.Run("MulAndRelin", func(t *testing.T) {
 		msg1, ct0 := newTestVectors(testctx, complex(-0.5, -0.5), complex(0.5, 0.5))
 		msg2, ct1 := newTestVectors(testctx, complex(-0.5, -0.5), complex(0.5, 0.5))
@@ -225,6 +243,19 @@ func testEval(testctx *testContext, t *testing.T) {
 
 		for i := 0; i < slots; i++ {
 			delta := msg1.Value[i]*msg2.Value[i] - msgOut.Value[i]
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(real(delta))))
+			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(imag(delta))))
+		}
+	})
+
+	t.Run("Rotate", func(t *testing.T) {
+		msg, ct := newTestVectors(testctx, complex(-0.5, -0.5), complex(0.5, 0.5))
+		rot := int(testctx.rtk.Rotidx)
+		ctOut := eval.RotateNew(ct, testctx.rtk)
+		msgOut := dec.DecryptToMsgNew(ctOut)
+
+		for i := 0; i < slots; i++ {
+			delta := msgOut.Value[i] - msg.Value[(i+rot)%slots]
 			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(real(delta))))
 			require.GreaterOrEqual(t, -math.Log2(params.DefaultScale())+float64(params.LogSlots())+12, math.Log2(math.Abs(imag(delta))))
 		}

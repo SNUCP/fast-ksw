@@ -115,3 +115,31 @@ func (keygen *KeyGenerator) GenRelinKey(sk *rlwe.SecretKey) (rlk *RelinKey) {
 
 	return
 }
+
+func (keygen *KeyGenerator) GenRotKey(rotidx int, sk *rlwe.SecretKey) (rtk *RotationKey) {
+
+	rotidx %= (keygen.params.N() / 2)
+
+	params := keygen.params
+	ringQP := params.RingQP()
+	rtk = NewRotationKey(params, uint64(rotidx))
+	rlweRtk := keygen.GenSwitchingKeyForRotationBy(rotidx, sk)
+
+	beta := params.Beta()
+	alpha := params.Alpha()
+
+	levelQ := params.MaxLevel()
+	levelP := alpha - 1
+
+	for i := 0; i < beta; i++ {
+		ringQP.InvMFormLvl(levelQ, levelP, rlweRtk.Value[i][0], rlweRtk.Value[i][0])
+		ringQP.InvNTTLvl(levelQ, levelP, rlweRtk.Value[i][0], rlweRtk.Value[i][0])
+		keygen.polyQPToPolyTs(rlweRtk.Value[i][0], rtk.Value[0].Value[i])
+
+		ringQP.InvMFormLvl(levelQ, levelP, rlweRtk.Value[i][1], rlweRtk.Value[i][1])
+		ringQP.InvNTTLvl(levelQ, levelP, rlweRtk.Value[i][1], rlweRtk.Value[i][1])
+		keygen.polyQPToPolyTs(rlweRtk.Value[i][1], rtk.Value[1].Value[i])
+	}
+
+	return
+}
