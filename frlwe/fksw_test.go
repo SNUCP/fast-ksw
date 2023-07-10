@@ -32,7 +32,7 @@ var (
 		},
 		T: []uint64{ // 55 x 4
 			0x7fffffffba0001, 0x7fffffffaa0001,
-			//0x7fffffff7e0001, 0x7fffffff380001,
+			0x7fffffff7e0001, 0x7fffffff380001,
 		},
 
 		Sigma: rlwe.DefaultSigma,
