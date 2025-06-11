@@ -1,3 +1,19 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// This file is a modified version of code originally from the Lattigo project:
+// https://github.com/ldsec/lattigo
+// Licensed under the Apache License, Version 2.0.
+
 package ring
 
 import (
@@ -125,7 +141,8 @@ func randFloat64(randomBytes []byte) float64 {
 // To produce a different normal distribution, callers can
 // adjust the output using:
 //
-//  sample = NormFloat64() * desiredStdDev + desiredMean
+//	sample = NormFloat64() * desiredStdDev + desiredMean
+//
 // Algorithm adapted from https://golang.org/src/math/rand/normal.go
 // to use a secure PRNG instead of math/rand.
 func (gaussianSampler *GaussianSampler) normFloat64() (float64, uint64) {
