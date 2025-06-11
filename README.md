@@ -1,3 +1,8 @@
+This product includes software developed by the Lattigo project
+(https://github.com/ldsec/lattigo), licensed under the Apache License 2.0.
+
+
+
 HOW TO INSTALL
 ==============
 use "go mod tidy" 
