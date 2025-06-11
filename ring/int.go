@@ -1,3 +1,19 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// This file is a modified version of code originally from the Lattigo project:
+// https://github.com/ldsec/lattigo
+// Licensed under the Apache License, Version 2.0.
+
 package ring
 
 import (
@@ -16,9 +32,9 @@ func NewUint(v uint64) *big.Int {
 }
 
 // NewIntFromString creates a new Int from a string.
-// A prefix of ``0x'' or ``0X'' selects base 16;
-// the ``0'' prefix selects base 8, and
-// a ``0b'' or ``0B'' prefix selects base 2.
+// A prefix of “0x” or “0X” selects base 16;
+// the “0” prefix selects base 8, and
+// a “0b” or “0B” prefix selects base 2.
 // Otherwise, the selected base is 10.
 func NewIntFromString(s string) *big.Int {
 	i, _ := new(big.Int).SetString(s, 0)

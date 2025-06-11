@@ -1,5 +1,21 @@
-//Package ckks implements a RNS-accelerated version of the Homomorphic Encryption for Arithmetic for Approximate Numbers
-//(HEAAN, a.k.a. CKKS) scheme. It provides approximate arithmetic over the complex numbers.package ckks
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// This file is a modified version of code originally from the Lattigo project:
+// https://github.com/ldsec/lattigo
+// Licensed under the Apache License, Version 2.0.
+
+// Package ckks implements a RNS-accelerated version of the Homomorphic Encryption for Arithmetic for Approximate Numbers
+// (HEAAN, a.k.a. CKKS) scheme. It provides approximate arithmetic over the complex numbers.package ckks
 package ckks
 
 import (
@@ -23,24 +39,26 @@ var pi = "3.14159265358979323846264338327950288419716939937510582097494459230781
 // into/from Plaintext types.
 // Two different encodings are provided:
 //
-//     - Coeffs: The coefficients are directly embedded on the plaintext. This encoding only allows to encode []float64 slices, but of size up to N
-//               (N being the ring degree) and does not preserve the point-wise multiplication. A ciphertext multiplication will result in a nega-
-//               cyclic polynomial convolution in the plaintext domain. This encoding does not provide native slot cyclic rotation.
-//               Other operations, like addition or constant multiplication, behave as usual.
+//   - Coeffs: The coefficients are directly embedded on the plaintext. This encoding only allows to encode []float64 slices, but of size up to N
+//     (N being the ring degree) and does not preserve the point-wise multiplication. A ciphertext multiplication will result in a nega-
+//     cyclic polynomial convolution in the plaintext domain. This encoding does not provide native slot cyclic rotation.
+//     Other operations, like addition or constant multiplication, behave as usual.
 //
-//     - Slots: The coefficients are first subjected to a special Fourier transform before being embedded in the plaintext by using Coeffs encoding.
-//              This encoding can embed []complex128 and []float64 slices of size at most N/2 (N being the ring degree) and leverages the convolution
-//              property of the DFT to preserve point-wise complex multiplication in the plaintext domain, i.e. a ciphertext multiplication will result
-//              in an element-wise multiplication in the plaintext domain. It also enables cyclic rotations on plaintext slots. Other operations, like
-//              constant multiplication, behave as usual. It is considered the default encoding method for CKKS.
-//
+//   - Slots: The coefficients are first subjected to a special Fourier transform before being embedded in the plaintext by using Coeffs encoding.
+//     This encoding can embed []complex128 and []float64 slices of size at most N/2 (N being the ring degree) and leverages the convolution
+//     property of the DFT to preserve point-wise complex multiplication in the plaintext domain, i.e. a ciphertext multiplication will result
+//     in an element-wise multiplication in the plaintext domain. It also enables cyclic rotations on plaintext slots. Other operations, like
+//     constant multiplication, behave as usual. It is considered the default encoding method for CKKS.
 //
 // The figure bellow illustrates the relationship between these two encodings:
 //
-//                                              Real^{N}          Z_Q[X]/(X^N+1)
+//	Real^{N}          Z_Q[X]/(X^N+1)
+//
 // EncodeCoeffs: ----------------------------->[]float64 ---------> Plaintext
-//                                                 |
-//                    Complex^{N/2}                |
+//
+//	                             |
+//	Complex^{N/2}                |
+//
 // EncodeSlots:  []complex128/[]float64 -> iDFT ---┘
 type Encoder interface {
 
@@ -324,12 +342,16 @@ func (ecd *encoderComplex128) ShallowCopy() Encoder {
 // Embed is a generic method to encode a set of values on the target polyOut interface.
 // This method it as the core of the slot encoding.
 // values: values.(type) can be either []complex128 of []float64.
-//         The imaginary part of []complex128 will be discarded if ringType == ring.ConjugateInvariant.
+//
+//	The imaginary part of []complex128 will be discarded if ringType == ring.ConjugateInvariant.
+//
 // logslots: user must ensure that 1 <= len(values) <= 2^logSlots < 2^logN and that logSlots >= 3.
 // scale: the scaling factor used do discretize float64 to fixed point integers.
 // montgomery: if true then the value written on polyOut are put in the Montgomery domain.
 // polyOut: polyOut.(type) can be either rlwe.PolyQP or *ring.Poly.
-//          The encoding encoding is done at the level of polyOut.
+//
+//	The encoding encoding is done at the level of polyOut.
+//
 // Values written on  polyOut are always in the NTT domain.
 func (ecd *encoderComplex128) Embed(values interface{}, logSlots int, scale float64, montgomery bool, polyOut interface{}) {
 

@@ -1,3 +1,19 @@
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// This file is a modified version of code originally from the Lattigo project:
+// https://github.com/ldsec/lattigo
+// Licensed under the Apache License, Version 2.0.
+
 package ring
 
 import (
@@ -363,7 +379,7 @@ func (r *Ring) MulScalarBigint(p1 *Poly, scalar *big.Int, p2 *Poly) {
 }
 
 // MulScalarBigintLvl multiplies each coefficient of p1 by a big.Int scalar
-//for the moduli from q_0 up to q_level and writes the result on p2.
+// for the moduli from q_0 up to q_level and writes the result on p2.
 func (r *Ring) MulScalarBigintLvl(level int, p1 *Poly, scalar *big.Int, p2 *Poly) {
 	scalarQi := new(big.Int)
 	for i := 0; i < level+1; i++ {
